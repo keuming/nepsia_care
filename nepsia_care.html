@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEPSIA CARE</title>
+<style>
+:root{
+  --green-dark:#2f4a17;
+  --green:#6b8e23;
+  --green-soft:#8fae4a;
+  --gold:#c9a227;
+  --cream:#f7f6ee;
+  --cream-2:#eef0e2;
+  --ink:#233018;
+  --grey:#6b6f61;
+  --white:#ffffff;
+  --red:#b1442d;
+  --amber:#c98a27;
+  --ok:#4c7a2f;
+  --radius:14px;
+  --shadow:0 1px 3px rgba(47,74,23,.08), 0 8px 24px rgba(47,74,23,.06);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%;}
+body{
+  font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
+  background:var(--cream);
+  color:var(--ink);
+  display:flex;
+  min-height:100vh;
+}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:#c8cdb8;border-radius:8px}
+
+/* ---------- layout ---------- */
+#sidebar{
+  width:250px; flex:0 0 250px;
+  background:linear-gradient(180deg,var(--green-dark),#233815);
+  color:#eef0e2;
+  padding:22px 16px;
+  display:flex; flex-direction:column;
+  position:sticky; top:0; height:100vh;
+}
+.brand{display:flex; align-items:center; gap:10px; margin-bottom:6px;}
+.brand-badge{
+  width:38px;height:38px;border-radius:10px;
+  background:radial-gradient(circle at 30% 30%, var(--gold), #8a6c15);
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800; color:#2f2408; font-size:15px;
+}
+.brand h1{font-size:17px; margin:0; letter-spacing:.3px; font-weight:700;}
+.brand p{margin:0; font-size:10.5px; color:#c7d0b3; letter-spacing:.4px;}
+.tagline{font-size:11px; color:#b9c6a0; font-style:italic; margin:10px 2px 22px;}
+nav{display:flex; flex-direction:column; gap:3px; flex:1; overflow-y:auto;}
+.nav-item{
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px; border-radius:10px; cursor:pointer;
+  font-size:13.5px; color:#dfe6cf; transition:.15s;
+  border:1px solid transparent;
+}
+.nav-item:hover{background:rgba(255,255,255,.06);}
+.nav-item.active{background:rgba(255,255,255,.12); color:#fff; border-color:rgba(201,162,39,.4);}
+.nav-icon{width:18px; text-align:center; opacity:.9; font-size:14px;}
+.sidebar-foot{margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,.12);}
+.role-select{width:100%; background:rgba(255,255,255,.08); color:#fff; border:1px solid rgba(255,255,255,.2); border-radius:8px; padding:8px; font-size:12px;}
+.role-label{font-size:10px; color:#b9c6a0; margin-bottom:6px; text-transform:uppercase; letter-spacing:.6px;}
+
+#main{flex:1; min-width:0; display:flex; flex-direction:column;}
+#topbar{
+  padding:16px 28px; background:var(--white); border-bottom:1px solid #e6e4d4;
+  display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:5;
+}
+#topbar h2{margin:0; font-size:19px; color:var(--green-dark);}
+#topbar .sub{font-size:12px; color:var(--grey); margin-top:2px;}
+.topbar-right{display:flex; align-items:center; gap:14px; font-size:12.5px; color:var(--grey);}
+.pill{background:var(--cream-2); border:1px solid #dfe3cf; padding:5px 12px; border-radius:999px; font-size:11.5px; color:var(--green-dark); font-weight:600;}
+
+#content{padding:24px 28px; flex:1; overflow-y:auto;}
+.view{display:none;}
+.view.active{display:block; animation:fade .25s ease;}
+@keyframes fade{from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:translateY(0)}}
+
+/* ---------- widgets ---------- */
+.grid{display:grid; gap:16px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:repeat(2,1fr);}}
+
+.card{background:var(--white); border-radius:var(--radius); box-shadow:var(--shadow); padding:18px 20px; border:1px solid #eeece0;}
+.kpi .num{font-size:28px; font-weight:800; color:var(--green-dark);}
+.kpi .lbl{font-size:12px; color:var(--grey); margin-top:2px;}
+.kpi .delta{font-size:11px; margin-top:8px; font-weight:600;}
+.kpi .delta.up{color:var(--ok);}
+.kpi .delta.warn{color:var(--amber);}
+.kpi .delta.bad{color:var(--red);}
+
+.section-title{font-size:15px; font-weight:700; color:var(--green-dark); margin:26px 0 12px; display:flex; align-items:center; justify-content:space-between;}
+.btn{
+  border:none; background:var(--green-dark); color:#fff; padding:9px 16px; border-radius:9px;
+  font-size:12.5px; cursor:pointer; font-weight:600; transition:.15s; display:inline-flex; align-items:center; gap:6px;
+}
+.btn:hover{background:#233815;}
+.btn.gold{background:var(--gold); color:#2f2408;}
+.btn.gold:hover{background:#b2911f;}
+.btn.ghost{background:transparent; border:1px solid #d6d9c6; color:var(--green-dark);}
+.btn.ghost:hover{background:var(--cream-2);}
+.btn.sm{padding:5px 10px; font-size:11.5px;}
+.btn.danger{background:#fbeae5; color:var(--red);}
+
+table{width:100%; border-collapse:collapse; font-size:12.8px;}
+th{text-align:left; color:var(--grey); font-weight:600; padding:9px 10px; border-bottom:2px solid #ececdf; font-size:11.5px; text-transform:uppercase; letter-spacing:.3px;}
+td{padding:10px; border-bottom:1px solid #f0efe3; vertical-align:middle;}
+tr:hover td{background:#fbfaf3;}
+.badge{padding:3px 9px; border-radius:999px; font-size:10.5px; font-weight:700; display:inline-block;}
+.badge.green{background:#e6efd9; color:var(--green-dark);}
+.badge.gold{background:#f6ecd0; color:#8a6c15;}
+.badge.red{background:#fbe4de; color:var(--red);}
+.badge.grey{background:#eee; color:#666;}
+.badge.blue{background:#e2ecf5; color:#33587a;}
+
+.tag{font-size:10.5px; background:var(--cream-2); border:1px solid #e2e6d2; padding:2px 8px; border-radius:6px; color:var(--green-dark); margin-right:4px;}
+
+.toolbar{display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap;}
+input[type=text],input[type=date],input[type=number],input[type=time],select,textarea{
+  border:1px solid #dcdfd0; border-radius:8px; padding:8px 10px; font-size:12.8px; font-family:inherit; background:#fff; color:var(--ink);
+}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--green-soft); outline-offset:1px;}
+.search{flex:1; min-width:160px;}
+label{font-size:11.5px; color:var(--grey); font-weight:600; display:block; margin-bottom:4px;}
+.field{margin-bottom:12px;}
+.formgrid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+
+/* modal */
+.overlay{position:fixed; inset:0; background:rgba(35,48,24,.45); display:none; align-items:center; justify-content:center; z-index:50; padding:20px;}
+.overlay.active{display:flex;}
+.modal{background:#fff; border-radius:16px; width:100%; max-width:560px; max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.modal-head{padding:18px 22px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center;}
+.modal-head h3{margin:0; font-size:16px; color:var(--green-dark);}
+.modal-body{padding:20px 22px;}
+.modal-foot{padding:14px 22px; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:10px;}
+.close-x{cursor:pointer; font-size:18px; color:var(--grey); border:none; background:none;}
+
+.steps{display:flex; gap:8px; margin:14px 0 6px;}
+.step{flex:1; text-align:center; padding:10px 6px; border-radius:10px; border:1.5px solid #e3e6d5; font-size:11px; cursor:pointer;}
+.step.done{background:#e6efd9; border-color:var(--green); color:var(--green-dark); font-weight:700;}
+.step.current{border-color:var(--gold); box-shadow:0 0 0 2px rgba(201,162,39,.25);}
+.progressbar{height:8px; background:#ececdf; border-radius:6px; overflow:hidden; margin-top:6px;}
+.progressbar > div{height:100%; background:linear-gradient(90deg,var(--green),var(--gold));}
+
+.empty{text-align:center; padding:40px 10px; color:var(--grey);}
+.empty .big{font-size:30px; margin-bottom:8px;}
+
+.timeline-obj{display:flex; gap:10px; margin-bottom:10px;}
+.timeline-obj .dot{width:10px;height:10px;border-radius:50%; background:var(--green); margin-top:5px; flex:0 0 10px;}
+.timeline-obj .term{font-size:10px; text-transform:uppercase; color:var(--gold); font-weight:800; letter-spacing:.5px;}
+.timeline-obj p{margin:2px 0 0; font-size:12.5px; color:var(--ink);}
+
+.patient-card{cursor:pointer; transition:.15s;}
+.patient-card:hover{transform:translateY(-2px); box-shadow:0 10px 24px rgba(47,74,23,.14);}
+
+.chip-services{display:flex; gap:5px; flex-wrap:wrap; margin-top:6px;}
+
+#toast{position:fixed; bottom:22px; right:22px; background:var(--green-dark); color:#fff; padding:12px 18px; border-radius:10px; font-size:13px; box-shadow:var(--shadow); z-index:99; display:none;}
+
+.two-col{display:grid; grid-template-columns:1.3fr 1fr; gap:18px;}
+@media(max-width:1000px){.two-col{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<div id="sidebar">
+  <div class="brand">
+    <div class="brand-badge">N</div>
+    <div>
+      <h1>NEPSIA CARE</h1>
+      <p>Santé & Prévention</p>
+    </div>
+  </div>
+  <div class="tagline">« Le patient, notre raison d'exister »</div>
+  <nav id="nav"></nav>
+  <div class="sidebar-foot">
+    <div class="role-label">Connecté en tant que</div>
+    <select class="role-select" id="roleSelect">
+      <option>Direction</option>
+      <option>Coordination HAD</option>
+      <option>Infirmier(ère)</option>
+      <option>RH / Formation</option>
+      <option>Facturation</option>
+      <option>Responsable Santé au Travail</option>
+    </select>
+  </div>
+</div>
+
+<div id="main">
+  <div id="topbar">
+    <div>
+      <h2 id="viewTitle">Tableau de bord</h2>
+      <div class="sub" id="viewSub">Vue d'ensemble de l'activité NEPSIA</div>
+    </div>
+    <div class="topbar-right">
+      <span class="pill" id="clockPill"></span>
+      <span class="pill">7j/7 · 24h/24</span>
+    </div>
+  </div>
+  <div id="content"></div>
+</div>
+
+<div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   NEPSIA CARE — plateforme de gestion HAD & Santé au Travail
+   Prototype fonctionnel — données persistées via window.storage
+   ============================================================ */
+
+const SERVICES = [
+  {id:'soins', label:'Soins paramédicaux & nursing', color:'green'},
+  {id:'auxvie', label:'Auxiliaire de vie', color:'gold'},
+  {id:'menage', label:'Aide-ménagère', color:'grey'},
+  {id:'urgence', label:"Aide d'urgence Vite et Bien", color:'red'},
+  {id:'surveillance', label:'Surveillance 24h/24', color:'blue'},
+  {id:'repas', label:'Repas à domicile', color:'gold'},
+  {id:'garde', label:"Garde d'enfants malades", color:'green'},
+  {id:'readapt', label:'Réadaptation & yoga', color:'gold'},
+  {id:'addicto', label:'Addictologie', color:'green'},
+  {id:'travail', label:'Santé au travail', color:'blue'},
+];
+const ADMISSION_STEPS = [
+  {key:'eval', title:'Évaluation médicale', desc:"Un médecin se déplace à domicile pour évaluer l'état de santé et les besoins réels du patient."},
+  {key:'inf', title:'Démarche infirmière', desc:'Un protocole de soins personnalisé est établi selon le diagnostic et les besoins identifiés.'},
+  {key:'ergo', title:'Étude ergonomique', desc:'La chambre du patient est adaptée pour garantir confort, sécurité et autonomie.'},
+  {key:'coord', title:'Coordination continue', desc:"L'équipe pluridisciplinaire assure un suivi permanent et ajuste la prise en charge."},
+];
+const ROLES_EQUIPE = ['Médecin','Infirmier(ère)','Aide-soignant(e)','Kinésithérapeute','Ergothérapeute','Diététicien(ne)','Orthophoniste','Assistant(e) social(e)','Auxiliaire de vie','Aide ménager(ère)'];
+
+const NAVS = [
+  {id:'dashboard', icon:'&#9737;', label:'Tableau de bord'},
+  {id:'patients', icon:'&#9877;', label:'Patients & Admission HAD'},
+  {id:'planning', icon:'&#128197;', label:'Planning & Interventions'},
+  {id:'equipe', icon:'&#128101;', label:'Équipe & Formations'},
+  {id:'travail', icon:'&#127970;', label:'Santé au Travail'},
+  {id:'facturation', icon:'&#128179;', label:'Facturation'},
+  {id:'qualite', icon:'&#9989;', label:'Qualité — SMQ'},
+];
+
+let STATE = {patients:[], team:[], interventions:[], entreprises:[], factures:[], seeded:false};
+let CURRENT_VIEW = 'dashboard';
+
+/* ---------------- storage helpers ---------------- */
+async function loadState(){
+  try{
+    const r = await window.storage.get('nepsia-state', true);
+    if(r && r.value){ STATE = JSON.parse(r.value); return; }
+  }catch(e){ /* not found */ }
+  seed();
+  await saveState();
+}
+async function saveState(){
+  try{ await window.storage.set('nepsia-state', JSON.stringify(STATE), true); }
+  catch(e){ console.error('storage error', e); }
+}
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block';
+  clearTimeout(window.__toastT); window.__toastT=setTimeout(()=>t.style.display='none', 2200);
+}
+
+/* ---------------- seed data ---------------- */
+function seed(){
+  const today = new Date();
+  const iso = (d)=> d.toISOString().slice(0,10);
+  const dPlus = (n)=>{ const d=new Date(today); d.setDate(d.getDate()+n); return iso(d); };
+
+  STATE.team = [
+    {id:uid(), nom:'Dr TIABAS N\'DA Eliane', role:'Médecin', tel:'01 02 78 18 38', dispo:true, formations:[{theme:'Hygiène hospitalière', type:'Continue', date:dPlus(-30)}], prochaine:dPlus(60)},
+    {id:uid(), nom:'Aya Konan', role:'Infirmier(ère)', tel:'07 45 11 22 33', dispo:true, formations:[{theme:'Gestes de secours', type:'Continue', date:dPlus(-10)}], prochaine:dPlus(80)},
+    {id:uid(), nom:'Serge Boa', role:'Infirmier(ère)', tel:'05 12 34 56 78', dispo:true, formations:[{theme:'Soins infirmiers', type:'Initiale', date:dPlus(-200)}], prochaine:dPlus(5)},
+    {id:uid(), nom:'Fatou Diabaté', role:'Aide-soignant(e)', tel:'01 22 33 44 55', dispo:false, formations:[{theme:'Hygiène hospitalière', type:'Continue', date:dPlus(-15)}], prochaine:dPlus(75)},
+    {id:uid(), nom:'Marc Kouassi', role:'Kinésithérapeute', tel:'07 88 99 00 11', dispo:true, formations:[], prochaine:dPlus(20)},
+    {id:uid(), nom:'Awa Touré', role:'Auxiliaire de vie', tel:'01 55 66 77 88', dispo:true, formations:[], prochaine:dPlus(40)},
+    {id:uid(), nom:'Jean Yao', role:'Aide ménager(ère)', tel:'07 33 22 11 00', dispo:true, formations:[], prochaine:dPlus(90)},
+  ];
+
+  STATE.patients = [
+    {id:uid(), nom:'Kouamé', prenom:'Adjoua', age:78, tel:'01 44 55 66 77', adresse:'Cocody Angré', pathologie:'AVC — suites de rééducation', allergies:'Aucune connue', medecinTraitant:'Dr Bamba', statut:'actif',
+      services:['soins','auxvie','repas'], planSoins:'Kinésithérapie 3x/semaine, pansement quotidien, surveillance tension.',
+      admission:{eval:{done:true,date:dPlus(-20),par:"Dr TIABAS N'DA Eliane"}, inf:{done:true,date:dPlus(-19),par:'Aya Konan'}, ergo:{done:true,date:dPlus(-18),par:'Marc Kouassi'}, coord:{done:true,date:dPlus(-17),par:'Coordination'}}},
+    {id:uid(), nom:'Yao', prenom:'Bertin', age:64, tel:'07 12 34 00 99', adresse:'Riviera Palmeraie', pathologie:'Diabète type 2 — soins post-opératoires', allergies:'Pénicilline', medecinTraitant:'Dr Kone', statut:'actif',
+      services:['soins','surveillance','repas'], planSoins:'Glycémie 2x/jour, pansement plaie, régime diététique sans sucre.',
+      admission:{eval:{done:true,date:dPlus(-6),par:"Dr TIABAS N'DA Eliane"}, inf:{done:true,date:dPlus(-5),par:'Serge Boa'}, ergo:{done:false}, coord:{done:false}}},
+    {id:uid(), nom:'N\'Guessan', prenom:'Marie-Paule', age:5, tel:'01 90 80 70 60', adresse:'Cocody Riviera 2', pathologie:'Bronchiolite — garde enfant malade', allergies:'Aucune', medecinTraitant:'Dr Aka', statut:'actif',
+      services:['garde'], planSoins:'Surveillance respiratoire, nébulisation matin/soir.',
+      admission:{eval:{done:true,date:dPlus(-2),par:"Dr TIABAS N'DA Eliane"}, inf:{done:false}, ergo:{done:false}, coord:{done:false}}},
+    {id:uid(), nom:'Ouattara', prenom:'Ibrahim', age:82, tel:'07 66 55 44 33', adresse:'Yopougon', pathologie:'Suivi gériatrique — perte d\'autonomie', allergies:'Aucune connue', medecinTraitant:'Dr Bamba', statut:'clôturé',
+      services:['auxvie','readapt'], planSoins:'Séance de yoga adapté hebdomadaire, aide à la mobilisation.',
+      admission:{eval:{done:true,date:dPlus(-90),par:"Dr TIABAS N'DA Eliane"}, inf:{done:true,date:dPlus(-89),par:'Aya Konan'}, ergo:{done:true,date:dPlus(-88),par:'Marc Kouassi'}, coord:{done:true,date:dPlus(-87),par:'Coordination'}}},
+  ];
+
+  const p = STATE.patients; const t = STATE.team;
+  STATE.interventions = [
+    {id:uid(), date:iso(today), heure:'08:00', patientId:p[0].id, intervenantId:t[1].id, service:'soins', statut:'réalisée', notes:'Pansement fait, constantes stables.'},
+    {id:uid(), date:iso(today), heure:'09:30', patientId:p[1].id, intervenantId:t[2].id, service:'soins', statut:'planifiée', notes:''},
+    {id:uid(), date:iso(today), heure:'11:00', patientId:p[2].id, intervenantId:t[3].id, service:'garde', statut:'planifiée', notes:''},
+    {id:uid(), date:iso(today), heure:'14:00', patientId:p[0].id, intervenantId:t[4].id, service:'readapt', statut:'planifiée', notes:''},
+    {id:uid(), date:dPlus(1), heure:'08:30', patientId:p[1].id, intervenantId:t[2].id, service:'surveillance', statut:'planifiée', notes:''},
+    {id:uid(), date:dPlus(1), heure:'10:00', patientId:p[0].id, intervenantId:t[5].id, service:'auxvie', statut:'planifiée', notes:''},
+    {id:uid(), date:dPlus(-1), heure:'09:00', patientId:p[0].id, intervenantId:t[1].id, service:'soins', statut:'réalisée', notes:'RAS'},
+  ];
+
+  STATE.entreprises = [
+    {id:uid(), nom:'SOCACI Industries', secteur:'Agro-industrie', effectif:120, contact:'rh@socaci-ci.com',
+      visites:[{date:dPlus(-40), type:'Visite périodique', statut:'réalisée'}, {date:dPlus(20), type:'Visite périodique', statut:'planifiée'}],
+      documentUnique:{version:'v2.1', date:dPlus(-60)}, campagnes:[{titre:'Dépistage hypertension', date:dPlus(-15), statut:'terminée'}]},
+    {id:uid(), nom:'Groupe BTP Ivoire', secteur:'BTP', effectif:340, contact:'hse@btp-ivoire.ci',
+      visites:[{date:dPlus(5), type:'Visite embauche', statut:'planifiée'}],
+      documentUnique:{version:'v1.0', date:dPlus(-400)}, campagnes:[]},
+  ];
+
+  STATE.factures = [
+    {id:uid(), type:'Patient', cible:'Kouamé Adjoua', service:'Soins & Auxiliaire de vie', montant:180000, date:dPlus(-5), statut:'payée'},
+    {id:uid(), type:'Patient', cible:'Yao Bertin', service:'Soins & Surveillance', montant:220000, date:dPlus(-2), statut:'en attente'},
+    {id:uid(), type:'Entreprise', cible:'SOCACI Industries', service:'Santé au travail', montant:1500000, date:dPlus(-10), statut:'payée'},
+    {id:uid(), type:'Entreprise', cible:'Groupe BTP Ivoire', service:'Santé au travail', montant:2100000, date:dPlus(-25), statut:'retard'},
+  ];
+  STATE.seeded = true;
+}
+
+/* ---------------- render: nav ---------------- */
+function renderNav(){
+  const nav = document.getElementById('nav');
+  nav.innerHTML = NAVS.map(n=>`
+    <div class="nav-item ${n.id===CURRENT_VIEW?'active':''}" onclick="goTo('${n.id}')">
+      <span class="nav-icon">${n.icon}</span><span>${n.label}</span>
+    </div>`).join('');
+}
+function goTo(id){ CURRENT_VIEW=id; renderNav(); renderView(); }
+
+function fmtMoney(n){ return n.toLocaleString('fr-FR')+' FCFA'; }
+function patientName(pid){ const p=STATE.patients.find(x=>x.id===pid); return p? p.prenom+' '+p.nom : '—'; }
+function teamName(tid){ const t=STATE.team.find(x=>x.id===tid); return t? t.nom : '—'; }
+function serviceLabel(sid){ const s=SERVICES.find(x=>x.id===sid); return s? s.label : sid; }
+function serviceColor(sid){ const s=SERVICES.find(x=>x.id===sid); return s? s.color : 'grey'; }
+
+/* ---------------- views ---------------- */
+function setHeader(title, sub){ document.getElementById('viewTitle').textContent=title; document.getElementById('viewSub').textContent=sub; }
+
+function renderView(){
+  const c = document.getElementById('content');
+  if(CURRENT_VIEW==='dashboard') return renderDashboard(c);
+  if(CURRENT_VIEW==='patients') return renderPatients(c);
+  if(CURRENT_VIEW==='planning') return renderPlanning(c);
+  if(CURRENT_VIEW==='equipe') return renderEquipe(c);
+  if(CURRENT_VIEW==='travail') return renderTravail(c);
+  if(CURRENT_VIEW==='facturation') return renderFacturation(c);
+  if(CURRENT_VIEW==='qualite') return renderQualite(c);
+}
+
+/* ---- Dashboard ---- */
+function renderDashboard(c){
+  setHeader('Tableau de bord', "Vue d'ensemble de l'activité NEPSIA Santé & Prévention");
+  const today = new Date().toISOString().slice(0,10);
+  const actifs = STATE.patients.filter(p=>p.statut==='actif').length;
+  const interventionsJour = STATE.interventions.filter(i=>i.date===today);
+  const dispo = STATE.team.filter(t=>t.dispo).length;
+  const ca = STATE.factures.reduce((s,f)=> s + (f.statut==='payée'?f.montant:0), 0);
+  const enAttente = STATE.factures.filter(f=>f.statut!=='payée').reduce((s,f)=>s+f.montant,0);
+
+  c.innerHTML = `
+  <div class="grid grid-4">
+    <div class="card kpi"><div class="num">${actifs}</div><div class="lbl">Patients actifs (HAD)</div><div class="delta up">+ suivi en temps réel</div></div>
+    <div class="card kpi"><div class="num">${interventionsJour.length}</div><div class="lbl">Interventions aujourd'hui</div><div class="delta warn">${interventionsJour.filter(i=>i.statut==='planifiée').length} à réaliser</div></div>
+    <div class="card kpi"><div class="num">${dispo}/${STATE.team.length}</div><div class="lbl">Personnel disponible</div><div class="delta up">100+ professionnels au réseau</div></div>
+    <div class="card kpi"><div class="num">${fmtMoney(ca).replace(' FCFA','')}</div><div class="lbl">Encaissé (FCFA)</div><div class="delta ${enAttente>0?'bad':'up'}">${fmtMoney(enAttente)} en attente</div></div>
+  </div>
+
+  <div class="two-col" style="margin-top:20px;">
+    <div class="card">
+      <div class="section-title" style="margin-top:0;">Interventions du jour <span class="tag">${interventionsJour.length}</span></div>
+      ${interventionsJour.length? `<table><thead><tr><th>Heure</th><th>Patient</th><th>Service</th><th>Intervenant</th><th>Statut</th></tr></thead><tbody>
+        ${interventionsJour.sort((a,b)=>a.heure.localeCompare(b.heure)).map(i=>`
+        <tr><td>${i.heure}</td><td>${patientName(i.patientId)}</td><td><span class="badge ${serviceColor(i.service)}">${serviceLabel(i.service)}</span></td><td>${teamName(i.intervenantId)}</td>
+        <td><span class="badge ${i.statut==='réalisée'?'green':i.statut==='annulée'?'red':'gold'}">${i.statut}</span></td></tr>`).join('')}
+      </tbody></table>` : `<div class="empty"><div class="big">📭</div>Aucune intervention planifiée aujourd'hui.</div>`}
+    </div>
+    <div class="card">
+      <div class="section-title" style="margin-top:0;">Admissions HAD en cours</div>
+      ${STATE.patients.filter(p=>p.statut==='actif').map(p=>{
+        const done = ADMISSION_STEPS.filter(s=>p.admission[s.key].done).length;
+        return `<div style="margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; font-size:12.8px;"><b>${p.prenom} ${p.nom}</b><span style="color:var(--grey)">${done}/4 étapes</span></div>
+          <div class="progressbar"><div style="width:${done/4*100}%"></div></div>
+        </div>`;
+      }).join('') || `<div class="empty">Aucun patient actif.</div>`}
+    </div>
+  </div>
+
+  <div class="section-title">Alertes formations à renouveler</div>
+  <div class="grid grid-3">
+    ${STATE.team.filter(t=>{
+      const d = new Date(t.prochaine); const now = new Date(); const diff=(d-now)/(1000*3600*24);
+      return diff <= 30;
+    }).map(t=>`<div class="card" style="border-left:4px solid var(--amber);">
+      <b>${t.nom}</b><br><span style="font-size:12px; color:var(--grey)">${t.role}</span>
+      <div style="margin-top:8px; font-size:12px;">Renouvellement prévu le <b>${t.prochaine}</b></div>
+    </div>`).join('') || `<div class="card empty">Aucune échéance sous 30 jours.</div>`}
+  </div>
+  `;
+}
+
+/* ---- Patients ---- */
+function renderPatients(c){
+  setHeader('Patients & Admission HAD', 'Dossiers patients et parcours d\'admission en 4 étapes');
+  c.innerHTML = `
+    <div class="toolbar">
+      <input class="search" type="text" id="patSearch" placeholder="Rechercher un patient...">
+      <select id="patFilter"><option value="tous">Tous les statuts</option><option value="actif">Actifs</option><option value="clôturé">Clôturés</option></select>
+      <button class="btn gold" onclick="openPatientForm()">+ Nouveau patient</button>
+    </div>
+    <div class="grid grid-3" id="patGrid"></div>
+  `;
+  document.getElementById('patSearch').oninput = drawPatGrid;
+  document.getElementById('patFilter').onchange = drawPatGrid;
+  drawPatGrid();
+}
+function drawPatGrid(){
+  const q = (document.getElementById('patSearch')?.value||'').toLowerCase();
+  const f = document.getElementById('patFilter')?.value||'tous';
+  let list = STATE.patients.filter(p=> (p.nom+' '+p.prenom).toLowerCase().includes(q) && (f==='tous'||p.statut===f));
+  const grid = document.getElementById('patGrid');
+  if(!list.length){ grid.innerHTML = `<div class="card empty" style="grid-column:1/-1;"><div class="big">🔍</div>Aucun patient trouvé.</div>`; return; }
+  grid.innerHTML = list.map(p=>{
+    const done = ADMISSION_STEPS.filter(s=>p.admission[s.key].done).length;
+    return `<div class="card patient-card" onclick="openPatientDetail('${p.id}')">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div><b style="font-size:14.5px;">${p.prenom} ${p.nom}</b><div style="font-size:11.5px; color:var(--grey);">${p.age} ans · ${p.adresse}</div></div>
+        <span class="badge ${p.statut==='actif'?'green':'grey'}">${p.statut}</span>
+      </div>
+      <div style="font-size:12.3px; margin-top:10px; color:var(--ink);">${p.pathologie}</div>
+      <div class="chip-services">${p.services.map(s=>`<span class="tag">${serviceLabel(s)}</span>`).join('')}</div>
+      <div style="margin-top:12px;">
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--grey);"><span>Admission HAD</span><span>${done}/4</span></div>
+        <div class="progressbar"><div style="width:${done/4*100}%"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openPatientForm(){
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-head"><h3>Nouveau patient</h3><button class="close-x" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body">
+      <div class="formgrid">
+        <div class="field"><label>Nom</label><input type="text" id="f_nom"></div>
+        <div class="field"><label>Prénom</label><input type="text" id="f_prenom"></div>
+        <div class="field"><label>Âge</label><input type="number" id="f_age"></div>
+        <div class="field"><label>Téléphone</label><input type="text" id="f_tel"></div>
+        <div class="field" style="grid-column:1/-1;"><label>Adresse</label><input type="text" id="f_adresse"></div>
+        <div class="field" style="grid-column:1/-1;"><label>Pathologie / motif de prise en charge</label><input type="text" id="f_patho"></div>
+        <div class="field"><label>Allergies</label><input type="text" id="f_allergies"></div>
+        <div class="field"><label>Médecin traitant</label><input type="text" id="f_medecin"></div>
+      </div>
+      <div class="field"><label>Services concernés</label>
+        <div class="chip-services">${SERVICES.map(s=>`<label style="display:inline-flex; align-items:center; gap:4px; font-weight:400; font-size:11.8px; background:var(--cream-2); padding:4px 9px; border-radius:7px; margin:2px;"><input type="checkbox" value="${s.id}" class="svc-check"> ${s.label}</label>`).join('')}</div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn gold" onclick="saveNewPatient()">Créer le dossier</button></div>
+  `;
+  openModal();
+}
+function saveNewPatient(){
+  const nom=document.getElementById('f_nom').value.trim();
+  const prenom=document.getElementById('f_prenom').value.trim();
+  if(!nom||!prenom){ toast('Nom et prénom requis'); return; }
+  const services = Array.from(document.querySelectorAll('.svc-check:checked')).map(c=>c.value);
+  const patient = {
+    id: uid(), nom, prenom, age: +document.getElementById('f_age').value||0,
+    tel: document.getElementById('f_tel').value, adresse: document.getElementById('f_adresse').value,
+    pathologie: document.getElementById('f_patho').value, allergies: document.getElementById('f_allergies').value||'Aucune connue',
+    medecinTraitant: document.getElementById('f_medecin').value, statut:'actif', services, planSoins:'',
+    admission:{eval:{done:false}, inf:{done:false}, ergo:{done:false}, coord:{done:false}},
+  };
+  STATE.patients.unshift(patient); saveState(); closeModal(); drawPatGrid(); toast('Dossier patient créé');
+}
+
+function openPatientDetail(id){
+  const p = STATE.patients.find(x=>x.id===id);
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-head">
+      <h3>${p.prenom} ${p.nom}</h3>
+      <button class="close-x" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex; gap:8px; margin-bottom:14px;">
+        <span class="badge ${p.statut==='actif'?'green':'grey'}">${p.statut}</span>
+        <span class="badge blue">${p.age} ans</span>
+      </div>
+      <p style="font-size:12.8px; margin:4px 0;"><b>Pathologie :</b> ${p.pathologie||'—'}</p>
+      <p style="font-size:12.8px; margin:4px 0;"><b>Allergies :</b> ${p.allergies||'—'}</p>
+      <p style="font-size:12.8px; margin:4px 0;"><b>Médecin traitant :</b> ${p.medecinTraitant||'—'}</p>
+      <p style="font-size:12.8px; margin:4px 0;"><b>Adresse :</b> ${p.adresse||'—'} · ${p.tel||''}</p>
+      <div class="chip-services" style="margin-top:8px;">${p.services.map(s=>`<span class="tag">${serviceLabel(s)}</span>`).join('')}</div>
+
+      <div class="section-title">Parcours d'admission HAD</div>
+      <div class="steps">
+        ${ADMISSION_STEPS.map((s,i)=>`<div class="step ${p.admission[s.key].done?'done':''}" onclick="toggleAdmission('${p.id}','${s.key}')">${i+1}. ${s.title}${p.admission[s.key].done?' ✓':''}</div>`).join('')}
+      </div>
+      ${ADMISSION_STEPS.map(s=>`<div style="font-size:11.5px; color:var(--grey); margin-bottom:4px;"><b>${s.title}:</b> ${s.desc}${p.admission[s.key].done? ' — réalisée le '+(p.admission[s.key].date||'')+' par '+(p.admission[s.key].par||''):''}</div>`).join('')}
+
+      <div class="section-title">Plan de soins personnalisé</div>
+      <textarea id="planSoins" rows="3" style="width:100%;">${p.planSoins||''}</textarea>
+      <div style="margin-top:8px; text-align:right;"><button class="btn sm ghost" onclick="savePlanSoins('${p.id}')">Enregistrer le plan de soins</button></div>
+
+      <div class="section-title">Historique des interventions</div>
+      ${STATE.interventions.filter(i=>i.patientId===p.id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).map(i=>`
+        <div style="font-size:12px; padding:6px 0; border-bottom:1px solid #f0efe3;">${i.date} · ${i.heure} — <span class="tag">${serviceLabel(i.service)}</span> avec ${teamName(i.intervenantId)} <span class="badge ${i.statut==='réalisée'?'green':'gold'}" style="margin-left:4px;">${i.statut}</span></div>
+      `).join('') || `<div style="font-size:12px; color:var(--grey);">Aucune intervention enregistrée.</div>`}
+    </div>
+    <div class="modal-foot">
+      <button class="btn danger" onclick="toggleStatutPatient('${p.id}')">${p.statut==='actif'?'Clôturer le dossier':'Réactiver le dossier'}</button>
+      <button class="btn gold" onclick="closeModal()">Fermer</button>
+    </div>
+  `;
+  openModal();
+}
+function toggleAdmission(pid, key){
+  const p = STATE.patients.find(x=>x.id===pid);
+  const cur = p.admission[key];
+  if(!cur.done){ p.admission[key] = {done:true, date:new Date().toISOString().slice(0,10), par: document.getElementById('roleSelect').value}; }
+  else { p.admission[key] = {done:false}; }
+  saveState(); openPatientDetail(pid); drawPatGrid();
+}
+function savePlanSoins(pid){
+  const p = STATE.patients.find(x=>x.id===pid);
+  p.planSoins = document.getElementById('planSoins').value;
+  saveState(); toast('Plan de soins mis à jour');
+}
+function toggleStatutPatient(pid){
+  const p = STATE.patients.find(x=>x.id===pid);
+  p.statut = p.statut==='actif' ? 'clôturé' : 'actif';
+  saveState(); closeModal(); drawPatGrid(); toast('Statut mis à jour');
+}
+
+/* ---- Planning ---- */
+let PLANNING_DATE = new Date().toISOString().slice(0,10);
+function renderPlanning(c){
+  setHeader('Planning & Interventions', 'Organisation des passages par service, patient et intervenant');
+  c.innerHTML = `
+    <div class="toolbar">
+      <input type="date" id="planDate" value="${PLANNING_DATE}">
+      <select id="planServiceFilter"><option value="tous">Tous les services</option>${SERVICES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('')}</select>
+      <button class="btn gold" onclick="openInterventionForm()">+ Planifier une intervention</button>
+    </div>
+    <div class="card"><table id="planTable"><thead><tr><th>Heure</th><th>Patient</th><th>Service</th><th>Intervenant</th><th>Statut</th><th>Notes</th><th></th></tr></thead><tbody></tbody></table></div>
+  `;
+  document.getElementById('planDate').onchange = e=>{ PLANNING_DATE=e.target.value; drawPlanTable(); };
+  document.getElementById('planServiceFilter').onchange = drawPlanTable;
+  drawPlanTable();
+}
+function drawPlanTable(){
+  const svc = document.getElementById('planServiceFilter')?.value||'tous';
+  let list = STATE.interventions.filter(i=>i.date===PLANNING_DATE && (svc==='tous'||i.service===svc)).sort((a,b)=>a.heure.localeCompare(b.heure));
+  const tbody = document.querySelector('#planTable tbody');
+  if(!list.length){ tbody.innerHTML = `<tr><td colspan="7"><div class="empty">Aucune intervention ce jour.</div></td></tr>`; return; }
+  tbody.innerHTML = list.map(i=>`
+    <tr>
+      <td><b>${i.heure}</b></td>
+      <td>${patientName(i.patientId)}</td>
+      <td><span class="badge ${serviceColor(i.service)}">${serviceLabel(i.service)}</span></td>
+      <td>${teamName(i.intervenantId)}</td>
+      <td>
+        <select onchange="changeStatutInt('${i.id}', this.value)">
+          <option ${i.statut==='planifiée'?'selected':''}>planifiée</option>
+          <option ${i.statut==='en cours'?'selected':''}>en cours</option>
+          <option ${i.statut==='réalisée'?'selected':''}>réalisée</option>
+          <option ${i.statut==='annulée'?'selected':''}>annulée</option>
+        </select>
+      </td>
+      <td style="max-width:180px; font-size:11.5px; color:var(--grey);">${i.notes||'—'}</td>
+      <td><button class="btn sm danger" onclick="deleteIntervention('${i.id}')">Suppr.</button></td>
+    </tr>`).join('');
+}
+function changeStatutInt(id, val){ const i=STATE.interventions.find(x=>x.id===id); i.statut=val; saveState(); toast('Statut mis à jour'); }
+function deleteIntervention(id){ STATE.interventions = STATE.interventions.filter(x=>x.id!==id); saveState(); drawPlanTable(); toast('Intervention supprimée'); }
+
+function openInterventionForm(){
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-head"><h3>Planifier une intervention</h3><button class="close-x" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body">
+      <div class="formgrid">
+        <div class="field"><label>Date</label><input type="date" id="i_date" value="${PLANNING_DATE}"></div>
+        <div class="field"><label>Heure</label><input type="time" id="i_heure" value="09:00"></div>
+        <div class="field"><label>Patient</label><select id="i_patient">${STATE.patients.filter(p=>p.statut==='actif').map(p=>`<option value="${p.id}">${p.prenom} ${p.nom}</option>`).join('')}</select></div>
+        <div class="field"><label>Service</label><select id="i_service">${SERVICES.map(s=>`<option value="${s.id}">${s.label}</option>`).join('')}</select></div>
+        <div class="field" style="grid-column:1/-1;"><label>Intervenant</label><select id="i_intervenant">${STATE.team.map(t=>`<option value="${t.id}">${t.nom} — ${t.role}</option>`).join('')}</select></div>
+        <div class="field" style="grid-column:1/-1;"><label>Notes</label><textarea id="i_notes" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn gold" onclick="saveIntervention()">Planifier</button></div>
+  `;
+  openModal();
+}
+function saveIntervention(){
+  if(!STATE.patients.some(p=>p.statut==='actif')){ toast('Créez d\'abord un patient actif'); return; }
+  const item = {
+    id:uid(), date:document.getElementById('i_date').value, heure:document.getElementById('i_heure').value,
+    patientId:document.getElementById('i_patient').value, service:document.getElementById('i_service').value,
+    intervenantId:document.getElementById('i_intervenant').value, statut:'planifiée', notes:document.getElementById('i_notes').value,
+  };
+  STATE.interventions.push(item); saveState(); closeModal(); PLANNING_DATE=item.date; renderPlanning(document.getElementById('content')); toast('Intervention planifiée');
+}
+
+/* ---- Équipe ---- */
+function renderEquipe(c){
+  setHeader('Équipe & Formations', "Annuaire des professionnels et suivi des formations (initiale + renforcement trimestriel)");
+  c.innerHTML = `
+    <div class="toolbar">
+      <input class="search" type="text" id="teamSearch" placeholder="Rechercher un professionnel...">
+      <select id="teamRoleFilter"><option value="tous">Tous les métiers</option>${ROLES_EQUIPE.map(r=>`<option>${r}</option>`).join('')}</select>
+      <button class="btn gold" onclick="openTeamForm()">+ Ajouter un professionnel</button>
+    </div>
+    <div class="card"><table id="teamTable"><thead><tr><th>Nom</th><th>Métier</th><th>Téléphone</th><th>Disponibilité</th><th>Prochaine formation</th><th></th></tr></thead><tbody></tbody></table></div>
+  `;
+  document.getElementById('teamSearch').oninput = drawTeamTable;
+  document.getElementById('teamRoleFilter').onchange = drawTeamTable;
+  drawTeamTable();
+}
+function drawTeamTable(){
+  const q=(document.getElementById('teamSearch')?.value||'').toLowerCase();
+  const rf=document.getElementById('teamRoleFilter')?.value||'tous';
+  let list = STATE.team.filter(t=>t.nom.toLowerCase().includes(q) && (rf==='tous'||t.role===rf));
+  const tbody = document.querySelector('#teamTable tbody');
+  if(!list.length){ tbody.innerHTML=`<tr><td colspan="6"><div class="empty">Aucun professionnel trouvé.</div></td></tr>`; return; }
+  const now = new Date();
+  tbody.innerHTML = list.map(t=>{
+    const diff = (new Date(t.prochaine)-now)/(1000*3600*24);
+    const soon = diff<=30;
+    return `<tr>
+      <td><b>${t.nom}</b></td>
+      <td>${t.role}</td>
+      <td>${t.tel||'—'}</td>
+      <td><span class="badge ${t.dispo?'green':'red'}">${t.dispo?'Disponible':'Indisponible'}</span></td>
+      <td><span class="badge ${soon?'gold':'grey'}">${t.prochaine}</span></td>
+      <td><button class="btn sm ghost" onclick="toggleDispo('${t.id}')">Basculer dispo.</button></td>
+    </tr>`;
+  }).join('');
+}
+function toggleDispo(id){ const t=STATE.team.find(x=>x.id===id); t.dispo=!t.dispo; saveState(); drawTeamTable(); }
+function openTeamForm(){
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-head"><h3>Nouveau professionnel</h3><button class="close-x" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body">
+      <div class="formgrid">
+        <div class="field"><label>Nom complet</label><input type="text" id="t_nom"></div>
+        <div class="field"><label>Métier</label><select id="t_role">${ROLES_EQUIPE.map(r=>`<option>${r}</option>`).join('')}</select></div>
+        <div class="field"><label>Téléphone</label><input type="text" id="t_tel"></div>
+        <div class="field"><label>Prochaine formation prévue</label><input type="date" id="t_prochaine"></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn gold" onclick="saveTeamMember()">Ajouter</button></div>
+  `;
+  openModal();
+}
+function saveTeamMember(){
+  const nom=document.getElementById('t_nom').value.trim();
+  if(!nom){ toast('Le nom est requis'); return; }
+  STATE.team.push({id:uid(), nom, role:document.getElementById('t_role').value, tel:document.getElementById('t_tel').value, dispo:true, formations:[], prochaine:document.getElementById('t_prochaine').value || new Date().toISOString().slice(0,10)});
+  saveState(); closeModal(); drawTeamTable(); toast('Professionnel ajouté à l\'équipe');
+}
+
+/* ---- Santé au travail ---- */
+function renderTravail(c){
+  setHeader('Santé au Travail', 'Suivi des entreprises clientes — visites médicales, CSST, document unique');
+  c.innerHTML = `
+    <div class="toolbar"><button class="btn gold" onclick="openEntrepriseForm()">+ Nouvelle entreprise cliente</button></div>
+    <div class="grid grid-2" id="entGrid"></div>
+  `;
+  drawEntGrid();
+}
+function drawEntGrid(){
+  const grid = document.getElementById('entGrid');
+  if(!STATE.entreprises.length){ grid.innerHTML = `<div class="card empty" style="grid-column:1/-1;">Aucune entreprise cliente enregistrée.</div>`; return; }
+  grid.innerHTML = STATE.entreprises.map(e=>`
+    <div class="card">
+      <div style="display:flex; justify-content:space-between;"><b style="font-size:14.5px;">${e.nom}</b><span class="badge blue">${e.effectif} salariés</span></div>
+      <div style="font-size:12px; color:var(--grey); margin-top:2px;">${e.secteur} · ${e.contact}</div>
+      <div class="section-title" style="font-size:12.5px; margin:14px 0 6px;">Visites médicales</div>
+      ${e.visites.map(v=>`<div style="font-size:12px; padding:4px 0; border-bottom:1px solid #f0efe3;">${v.date} — ${v.type} <span class="badge ${v.statut==='réalisée'?'green':'gold'}" style="margin-left:4px;">${v.statut}</span></div>`).join('') || '<div style="font-size:12px; color:var(--grey);">Aucune visite planifiée.</div>'}
+      <div style="margin-top:10px; font-size:12px;"><b>Document unique :</b> ${e.documentUnique.version} (${e.documentUnique.date})</div>
+      <div style="margin-top:8px; text-align:right;"><button class="btn sm ghost" onclick="addVisite('${e.id}')">+ Planifier une visite</button></div>
+    </div>
+  `).join('');
+}
+function addVisite(eid){
+  const e = STATE.entreprises.find(x=>x.id===eid);
+  const date = prompt('Date de la visite (AAAA-MM-JJ) :', new Date().toISOString().slice(0,10));
+  if(!date) return;
+  e.visites.push({date, type:'Visite périodique', statut:'planifiée'});
+  saveState(); drawEntGrid(); toast('Visite planifiée');
+}
+function openEntrepriseForm(){
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-head"><h3>Nouvelle entreprise cliente</h3><button class="close-x" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Nom de l'entreprise</label><input type="text" id="e_nom"></div>
+      <div class="formgrid">
+        <div class="field"><label>Secteur d'activité</label><input type="text" id="e_secteur"></div>
+        <div class="field"><label>Effectif</label><input type="number" id="e_effectif"></div>
+      </div>
+      <div class="field"><label>Contact (email)</label><input type="text" id="e_contact"></div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn gold" onclick="saveEntreprise()">Créer</button></div>
+  `;
+  openModal();
+}
+function saveEntreprise(){
+  const nom = document.getElementById('e_nom').value.trim();
+  if(!nom){ toast('Le nom est requis'); return; }
+  STATE.entreprises.push({id:uid(), nom, secteur:document.getElementById('e_secteur').value, effectif:+document.getElementById('e_effectif').value||0, contact:document.getElementById('e_contact').value, visites:[], documentUnique:{version:'v1.0', date:new Date().toISOString().slice(0,10)}, campagnes:[]});
+  saveState(); closeModal(); drawEntGrid(); toast('Entreprise ajoutée');
+}
+
+/* ---- Facturation ---- */
+function renderFacturation(c){
+  setHeader('Facturation', 'Suivi des factures patients, familles et entreprises clientes');
+  const total = STATE.factures.reduce((s,f)=>s+f.montant,0);
+  const payee = STATE.factures.filter(f=>f.statut==='payée').reduce((s,f)=>s+f.montant,0);
+  const retard = STATE.factures.filter(f=>f.statut==='retard').reduce((s,f)=>s+f.montant,0);
+  c.innerHTML = `
+    <div class="grid grid-3">
+      <div class="card kpi"><div class="num">${fmtMoney(total)}</div><div class="lbl">Total facturé</div></div>
+      <div class="card kpi"><div class="num" style="color:var(--ok)">${fmtMoney(payee)}</div><div class="lbl">Encaissé</div></div>
+      <div class="card kpi"><div class="num" style="color:var(--red)">${fmtMoney(retard)}</div><div class="lbl">En retard de paiement</div></div>
+    </div>
+    <div class="toolbar" style="margin-top:20px;"><button class="btn gold" onclick="openFactureForm()">+ Nouvelle facture</button></div>
+    <div class="card"><table><thead><tr><th>Cible</th><th>Type</th><th>Service</th><th>Date</th><th>Montant</th><th>Statut</th></tr></thead><tbody id="facBody"></tbody></table></div>
+  `;
+  drawFacTable();
+}
+function drawFacTable(){
+  const tbody = document.getElementById('facBody');
+  if(!STATE.factures.length){ tbody.innerHTML = `<tr><td colspan="6"><div class="empty">Aucune facture enregistrée.</div></td></tr>`; return; }
+  tbody.innerHTML = STATE.factures.sort((a,b)=>b.date.localeCompare(a.date)).map(f=>`
+    <tr>
+      <td><b>${f.cible}</b></td>
+      <td><span class="badge ${f.type==='Entreprise'?'blue':'grey'}">${f.type}</span></td>
+      <td>${f.service}</td>
+      <td>${f.date}</td>
+      <td>${fmtMoney(f.montant)}</td>
+      <td>
+        <select onchange="changeStatutFac('${f.id}', this.value)">
+          <option ${f.statut==='payée'?'selected':''}>payée</option>
+          <option ${f.statut==='en attente'?'selected':''}>en attente</option>
+          <option ${f.statut==='retard'?'selected':''}>retard</option>
+        </select>
+      </td>
+    </tr>`).join('');
+}
+function changeStatutFac(id, val){ const f=STATE.factures.find(x=>x.id===id); f.statut=val; saveState(); renderFacturation(document.getElementById('content')); }
+function openFactureForm(){
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-head"><h3>Nouvelle facture</h3><button class="close-x" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body">
+      <div class="formgrid">
+        <div class="field"><label>Type</label><select id="fa_type"><option>Patient</option><option>Entreprise</option></select></div>
+        <div class="field"><label>Cible (nom)</label><input type="text" id="fa_cible"></div>
+        <div class="field"><label>Service facturé</label><input type="text" id="fa_service"></div>
+        <div class="field"><label>Montant (FCFA)</label><input type="number" id="fa_montant"></div>
+        <div class="field"><label>Date</label><input type="date" id="fa_date" value="${new Date().toISOString().slice(0,10)}"></div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn gold" onclick="saveFacture()">Créer</button></div>
+  `;
+  openModal();
+}
+function saveFacture(){
+  const cible = document.getElementById('fa_cible').value.trim();
+  if(!cible){ toast('Le nom de la cible est requis'); return; }
+  STATE.factures.push({id:uid(), type:document.getElementById('fa_type').value, cible, service:document.getElementById('fa_service').value, montant:+document.getElementById('fa_montant').value||0, date:document.getElementById('fa_date').value, statut:'en attente'});
+  saveState(); closeModal(); renderFacturation(document.getElementById('content')); toast('Facture créée');
+}
+
+/* ---- Qualité SMQ ---- */
+function renderQualite(c){
+  setHeader('Qualité — Système de Management de la Qualité', 'Référence PQ-GQ-001 — 4 axes stratégiques, engagement depuis janvier 2023');
+  const admDone = STATE.patients.filter(p=>p.statut==='actif').reduce((s,p)=> s + ADMISSION_STEPS.filter(st=>p.admission[st.key].done).length, 0);
+  const admTotal = STATE.patients.filter(p=>p.statut==='actif').length * 4;
+  const admPct = admTotal? Math.round(admDone/admTotal*100) : 0;
+  const formOK = STATE.team.filter(t=>(new Date(t.prochaine)-new Date())/(1000*3600*24) > 30).length;
+  const formPct = STATE.team.length? Math.round(formOK/STATE.team.length*100) : 0;
+
+  c.innerHTML = `
+    <div class="grid grid-4">
+      <div class="card"><b style="font-size:12.5px;">Satisfaction client</b><div class="progressbar"><div style="width:82%"></div></div><div style="font-size:11px; color:var(--grey); margin-top:4px;">Soins de qualité, bien-être et autonomie du patient.</div></div>
+      <div class="card"><b style="font-size:12.5px;">Modernisation de la gestion</b><div class="progressbar"><div style="width:${admPct}%"></div></div><div style="font-size:11px; color:var(--grey); margin-top:4px;">${admPct}% des étapes d'admission HAD complétées.</div></div>
+      <div class="card"><b style="font-size:12.5px;">Développement du capital humain</b><div class="progressbar"><div style="width:${formPct}%"></div></div><div style="font-size:11px; color:var(--grey); margin-top:4px;">${formPct}% de l'équipe à jour de formation.</div></div>
+      <div class="card"><b style="font-size:12.5px;">Développement durable</b><div class="progressbar"><div style="width:70%"></div></div><div style="font-size:11px; color:var(--grey); margin-top:4px;">Responsabilité sociétale et pérennité de la structure.</div></div>
+    </div>
+
+    <div class="two-col" style="margin-top:20px;">
+      <div class="card">
+        <div class="section-title" style="margin-top:0;">Objectifs qualité — Hospitalisation à domicile (HAD)</div>
+        <div class="timeline-obj"><div class="dot"></div><div><span class="term">Court terme</span><p>Assurer la santé et le bien-être du patient par des soins de qualité, en collaboration avec les médecins traitants.</p></div></div>
+        <div class="timeline-obj"><div class="dot"></div><div><span class="term">Moyen terme</span><p>Maintenir le potentiel physique et cognitif du patient via des activités personnalisées.</p></div></div>
+        <div class="timeline-obj"><div class="dot"></div><div><span class="term">Long terme</span><p>Offrir un cadre de qualité avec des unités de soins répondant aux besoins en gériatrie.</p></div></div>
+      </div>
+      <div class="card">
+        <div class="section-title" style="margin-top:0;">Objectifs qualité — Santé au travail</div>
+        <div class="timeline-obj"><div class="dot"></div><div><span class="term">Court terme</span><p>Formaliser un processus documenté par prestation : visite médicale, document unique, audit, formation.</p></div></div>
+        <div class="timeline-obj"><div class="dot"></div><div><span class="term">Moyen terme</span><p>Démontrer un résultat mesurable chez le client et passer du "one-shot" à l'accompagnement continu.</p></div></div>
+        <div class="timeline-obj"><div class="dot"></div><div><span class="term">Long terme</span><p>Obtenir l'accréditation comme service de santé au travail interentreprises.</p></div></div>
+      </div>
+    </div>
+  `;
+}
+
+/* ---------------- modal helpers ---------------- */
+function openModal(){ document.getElementById('overlay').classList.add('active'); }
+function closeModal(){ document.getElementById('overlay').classList.remove('active'); }
+document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') closeModal(); });
+
+/* ---------------- clock ---------------- */
+function tickClock(){
+  const d = new Date();
+  document.getElementById('clockPill').textContent = d.toLocaleDateString('fr-FR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+}
+
+/* ---------------- init ---------------- */
+async function init(){
+  await loadState();
+  renderNav();
+  renderView();
+  tickClock();
+  setInterval(tickClock, 60000);
+}
+init();
+</script>
+</body>
+</html>
