@@ -246,87 +246,59 @@ const NAVS = [
   {id:'qualite', icon:'&#9989;', label:'Qualité — SMQ'},
 ];
 
-let STATE = {patients:[], team:[], interventions:[], entreprises:[], factures:[], seeded:false};
+let STATE = {patients:[], team:[], interventions:[], entreprises:[], factures:[]};
 let CURRENT_VIEW = 'dashboard';
 
-/* ---------------- storage helpers ---------------- */
+/* ---------------- API backend (Node.js/Express + PostgreSQL sur Vercel) ---------------- */
+// Remplacez par l'URL de votre déploiement Vercel une fois le backend en ligne, ex :
+// const API_BASE = 'https://nepsia-care-backend.vercel.app/api';
+const API_BASE = 'https://REPLACE-WITH-YOUR-VERCEL-URL.vercel.app/api';
+
+async function api(path, opts={}){
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: {'Content-Type':'application/json'},
+    ...opts,
+  });
+  if(!res.ok){
+    let msg = `Erreur API (${res.status})`;
+    try{ const j = await res.json(); if(j.error) msg = j.error; }catch(e){}
+    throw new Error(msg);
+  }
+  if(res.status === 204) return null;
+  return res.json();
+}
+const apiGet = (path) => api(path);
+const apiPost = (path, body) => api(path, {method:'POST', body: JSON.stringify(body)});
+const apiPut = (path, body) => api(path, {method:'PUT', body: JSON.stringify(body)});
+const apiDelete = (path) => api(path, {method:'DELETE'});
+
+/* ---------------- chargement des données depuis l'API ---------------- */
 async function loadState(){
   try{
-    const r = await window.storage.get('nepsia-state', true);
-    if(r && r.value){ STATE = JSON.parse(r.value); return; }
-  }catch(e){ /* not found */ }
-  seed();
-  await saveState();
+    const [patients, team, interventions, entreprises, factures] = await Promise.all([
+      apiGet('/patients'), apiGet('/team'), apiGet('/interventions'), apiGet('/entreprises'), apiGet('/factures'),
+    ]);
+    STATE = {patients, team, interventions, entreprises, factures};
+  }catch(e){
+    console.error(e);
+    toast("Connexion au serveur impossible — vérifiez l'URL de l'API (API_BASE) et votre connexion.");
+  }
 }
-async function saveState(){
-  try{ await window.storage.set('nepsia-state', JSON.stringify(STATE), true); }
-  catch(e){ console.error('storage error', e); }
+async function refresh(resource){
+  const map = {
+    patients: () => apiGet('/patients').then(r => STATE.patients = r),
+    team: () => apiGet('/team').then(r => STATE.team = r),
+    interventions: () => apiGet('/interventions').then(r => STATE.interventions = r),
+    entreprises: () => apiGet('/entreprises').then(r => STATE.entreprises = r),
+    factures: () => apiGet('/factures').then(r => STATE.factures = r),
+  };
+  if(map[resource]) await map[resource]();
 }
-function uid(){ return Math.random().toString(36).slice(2,9); }
 function toast(msg){
   const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block';
   clearTimeout(window.__toastT); window.__toastT=setTimeout(()=>t.style.display='none', 2200);
 }
 
-/* ---------------- seed data ---------------- */
-function seed(){
-  const today = new Date();
-  const iso = (d)=> d.toISOString().slice(0,10);
-  const dPlus = (n)=>{ const d=new Date(today); d.setDate(d.getDate()+n); return iso(d); };
-
-  STATE.team = [
-    {id:uid(), nom:'Dr TIABAS N\'DA Eliane', role:'Médecin', tel:'01 02 78 18 38', dispo:true, formations:[{theme:'Hygiène hospitalière', type:'Continue', date:dPlus(-30)}], prochaine:dPlus(60)},
-    {id:uid(), nom:'Aya Konan', role:'Infirmier(ère)', tel:'07 45 11 22 33', dispo:true, formations:[{theme:'Gestes de secours', type:'Continue', date:dPlus(-10)}], prochaine:dPlus(80)},
-    {id:uid(), nom:'Serge Boa', role:'Infirmier(ère)', tel:'05 12 34 56 78', dispo:true, formations:[{theme:'Soins infirmiers', type:'Initiale', date:dPlus(-200)}], prochaine:dPlus(5)},
-    {id:uid(), nom:'Fatou Diabaté', role:'Aide-soignant(e)', tel:'01 22 33 44 55', dispo:false, formations:[{theme:'Hygiène hospitalière', type:'Continue', date:dPlus(-15)}], prochaine:dPlus(75)},
-    {id:uid(), nom:'Marc Kouassi', role:'Kinésithérapeute', tel:'07 88 99 00 11', dispo:true, formations:[], prochaine:dPlus(20)},
-    {id:uid(), nom:'Awa Touré', role:'Auxiliaire de vie', tel:'01 55 66 77 88', dispo:true, formations:[], prochaine:dPlus(40)},
-    {id:uid(), nom:'Jean Yao', role:'Aide ménager(ère)', tel:'07 33 22 11 00', dispo:true, formations:[], prochaine:dPlus(90)},
-  ];
-
-  STATE.patients = [
-    {id:uid(), nom:'Kouamé', prenom:'Adjoua', age:78, tel:'01 44 55 66 77', adresse:'Cocody Angré', pathologie:'AVC — suites de rééducation', allergies:'Aucune connue', medecinTraitant:'Dr Bamba', statut:'actif',
-      services:['soins','auxvie','repas'], planSoins:'Kinésithérapie 3x/semaine, pansement quotidien, surveillance tension.',
-      admission:{eval:{done:true,date:dPlus(-20),par:"Dr TIABAS N'DA Eliane"}, inf:{done:true,date:dPlus(-19),par:'Aya Konan'}, ergo:{done:true,date:dPlus(-18),par:'Marc Kouassi'}, coord:{done:true,date:dPlus(-17),par:'Coordination'}}},
-    {id:uid(), nom:'Yao', prenom:'Bertin', age:64, tel:'07 12 34 00 99', adresse:'Riviera Palmeraie', pathologie:'Diabète type 2 — soins post-opératoires', allergies:'Pénicilline', medecinTraitant:'Dr Kone', statut:'actif',
-      services:['soins','surveillance','repas'], planSoins:'Glycémie 2x/jour, pansement plaie, régime diététique sans sucre.',
-      admission:{eval:{done:true,date:dPlus(-6),par:"Dr TIABAS N'DA Eliane"}, inf:{done:true,date:dPlus(-5),par:'Serge Boa'}, ergo:{done:false}, coord:{done:false}}},
-    {id:uid(), nom:'N\'Guessan', prenom:'Marie-Paule', age:5, tel:'01 90 80 70 60', adresse:'Cocody Riviera 2', pathologie:'Bronchiolite — garde enfant malade', allergies:'Aucune', medecinTraitant:'Dr Aka', statut:'actif',
-      services:['garde'], planSoins:'Surveillance respiratoire, nébulisation matin/soir.',
-      admission:{eval:{done:true,date:dPlus(-2),par:"Dr TIABAS N'DA Eliane"}, inf:{done:false}, ergo:{done:false}, coord:{done:false}}},
-    {id:uid(), nom:'Ouattara', prenom:'Ibrahim', age:82, tel:'07 66 55 44 33', adresse:'Yopougon', pathologie:'Suivi gériatrique — perte d\'autonomie', allergies:'Aucune connue', medecinTraitant:'Dr Bamba', statut:'clôturé',
-      services:['auxvie','readapt'], planSoins:'Séance de yoga adapté hebdomadaire, aide à la mobilisation.',
-      admission:{eval:{done:true,date:dPlus(-90),par:"Dr TIABAS N'DA Eliane"}, inf:{done:true,date:dPlus(-89),par:'Aya Konan'}, ergo:{done:true,date:dPlus(-88),par:'Marc Kouassi'}, coord:{done:true,date:dPlus(-87),par:'Coordination'}}},
-  ];
-
-  const p = STATE.patients; const t = STATE.team;
-  STATE.interventions = [
-    {id:uid(), date:iso(today), heure:'08:00', patientId:p[0].id, intervenantId:t[1].id, service:'soins', statut:'réalisée', notes:'Pansement fait, constantes stables.'},
-    {id:uid(), date:iso(today), heure:'09:30', patientId:p[1].id, intervenantId:t[2].id, service:'soins', statut:'planifiée', notes:''},
-    {id:uid(), date:iso(today), heure:'11:00', patientId:p[2].id, intervenantId:t[3].id, service:'garde', statut:'planifiée', notes:''},
-    {id:uid(), date:iso(today), heure:'14:00', patientId:p[0].id, intervenantId:t[4].id, service:'readapt', statut:'planifiée', notes:''},
-    {id:uid(), date:dPlus(1), heure:'08:30', patientId:p[1].id, intervenantId:t[2].id, service:'surveillance', statut:'planifiée', notes:''},
-    {id:uid(), date:dPlus(1), heure:'10:00', patientId:p[0].id, intervenantId:t[5].id, service:'auxvie', statut:'planifiée', notes:''},
-    {id:uid(), date:dPlus(-1), heure:'09:00', patientId:p[0].id, intervenantId:t[1].id, service:'soins', statut:'réalisée', notes:'RAS'},
-  ];
-
-  STATE.entreprises = [
-    {id:uid(), nom:'SOCACI Industries', secteur:'Agro-industrie', effectif:120, contact:'rh@socaci-ci.com',
-      visites:[{date:dPlus(-40), type:'Visite périodique', statut:'réalisée'}, {date:dPlus(20), type:'Visite périodique', statut:'planifiée'}],
-      documentUnique:{version:'v2.1', date:dPlus(-60)}, campagnes:[{titre:'Dépistage hypertension', date:dPlus(-15), statut:'terminée'}]},
-    {id:uid(), nom:'Groupe BTP Ivoire', secteur:'BTP', effectif:340, contact:'hse@btp-ivoire.ci',
-      visites:[{date:dPlus(5), type:'Visite embauche', statut:'planifiée'}],
-      documentUnique:{version:'v1.0', date:dPlus(-400)}, campagnes:[]},
-  ];
-
-  STATE.factures = [
-    {id:uid(), type:'Patient', cible:'Kouamé Adjoua', service:'Soins & Auxiliaire de vie', montant:180000, date:dPlus(-5), statut:'payée'},
-    {id:uid(), type:'Patient', cible:'Yao Bertin', service:'Soins & Surveillance', montant:220000, date:dPlus(-2), statut:'en attente'},
-    {id:uid(), type:'Entreprise', cible:'SOCACI Industries', service:'Santé au travail', montant:1500000, date:dPlus(-10), statut:'payée'},
-    {id:uid(), type:'Entreprise', cible:'Groupe BTP Ivoire', service:'Santé au travail', montant:2100000, date:dPlus(-25), statut:'retard'},
-  ];
-  STATE.seeded = true;
-}
 
 /* ---------------- render: nav ---------------- */
 function renderNav(){
@@ -470,19 +442,22 @@ function openPatientForm(){
   `;
   openModal();
 }
-function saveNewPatient(){
+async function saveNewPatient(){
   const nom=document.getElementById('f_nom').value.trim();
   const prenom=document.getElementById('f_prenom').value.trim();
   if(!nom||!prenom){ toast('Nom et prénom requis'); return; }
   const services = Array.from(document.querySelectorAll('.svc-check:checked')).map(c=>c.value);
   const patient = {
-    id: uid(), nom, prenom, age: +document.getElementById('f_age').value||0,
+    nom, prenom, age: +document.getElementById('f_age').value||0,
     tel: document.getElementById('f_tel').value, adresse: document.getElementById('f_adresse').value,
     pathologie: document.getElementById('f_patho').value, allergies: document.getElementById('f_allergies').value||'Aucune connue',
     medecinTraitant: document.getElementById('f_medecin').value, statut:'actif', services, planSoins:'',
-    admission:{eval:{done:false}, inf:{done:false}, ergo:{done:false}, coord:{done:false}},
   };
-  STATE.patients.unshift(patient); saveState(); closeModal(); drawPatGrid(); toast('Dossier patient créé');
+  try{
+    await apiPost('/patients', patient);
+    await refresh('patients');
+    closeModal(); drawPatGrid(); toast('Dossier patient créé');
+  }catch(e){ toast(e.message); }
 }
 
 function openPatientDetail(id){
@@ -525,22 +500,35 @@ function openPatientDetail(id){
   `;
   openModal();
 }
-function toggleAdmission(pid, key){
+async function toggleAdmission(pid, key){
   const p = STATE.patients.find(x=>x.id===pid);
-  const cur = p.admission[key];
-  if(!cur.done){ p.admission[key] = {done:true, date:new Date().toISOString().slice(0,10), par: document.getElementById('roleSelect').value}; }
-  else { p.admission[key] = {done:false}; }
-  saveState(); openPatientDetail(pid); drawPatGrid();
+  const admission = {...p.admission};
+  const cur = admission[key];
+  admission[key] = !cur.done
+    ? {done:true, date:new Date().toISOString().slice(0,10), par: document.getElementById('roleSelect').value}
+    : {done:false};
+  try{
+    await apiPut(`/patients?id=${pid}`, {admission});
+    await refresh('patients');
+    openPatientDetail(pid); drawPatGrid();
+  }catch(e){ toast(e.message); }
 }
-function savePlanSoins(pid){
-  const p = STATE.patients.find(x=>x.id===pid);
-  p.planSoins = document.getElementById('planSoins').value;
-  saveState(); toast('Plan de soins mis à jour');
+async function savePlanSoins(pid){
+  const planSoins = document.getElementById('planSoins').value;
+  try{
+    await apiPut(`/patients?id=${pid}`, {planSoins});
+    await refresh('patients');
+    toast('Plan de soins mis à jour');
+  }catch(e){ toast(e.message); }
 }
-function toggleStatutPatient(pid){
+async function toggleStatutPatient(pid){
   const p = STATE.patients.find(x=>x.id===pid);
-  p.statut = p.statut==='actif' ? 'clôturé' : 'actif';
-  saveState(); closeModal(); drawPatGrid(); toast('Statut mis à jour');
+  const statut = p.statut==='actif' ? 'clôturé' : 'actif';
+  try{
+    await apiPut(`/patients?id=${pid}`, {statut});
+    await refresh('patients');
+    closeModal(); drawPatGrid(); toast('Statut mis à jour');
+  }catch(e){ toast(e.message); }
 }
 
 /* ---- Planning ---- */
@@ -582,8 +570,14 @@ function drawPlanTable(){
       <td><button class="btn sm danger" onclick="deleteIntervention('${i.id}')">Suppr.</button></td>
     </tr>`).join('');
 }
-function changeStatutInt(id, val){ const i=STATE.interventions.find(x=>x.id===id); i.statut=val; saveState(); toast('Statut mis à jour'); }
-function deleteIntervention(id){ STATE.interventions = STATE.interventions.filter(x=>x.id!==id); saveState(); drawPlanTable(); toast('Intervention supprimée'); }
+async function changeStatutInt(id, val){
+  try{ await apiPut(`/interventions?id=${id}`, {statut:val}); await refresh('interventions'); toast('Statut mis à jour'); }
+  catch(e){ toast(e.message); }
+}
+async function deleteIntervention(id){
+  try{ await apiDelete(`/interventions?id=${id}`); await refresh('interventions'); drawPlanTable(); toast('Intervention supprimée'); }
+  catch(e){ toast(e.message); }
+}
 
 function openInterventionForm(){
   document.getElementById('modal').innerHTML = `
@@ -602,14 +596,18 @@ function openInterventionForm(){
   `;
   openModal();
 }
-function saveIntervention(){
+async function saveIntervention(){
   if(!STATE.patients.some(p=>p.statut==='actif')){ toast('Créez d\'abord un patient actif'); return; }
   const item = {
-    id:uid(), date:document.getElementById('i_date').value, heure:document.getElementById('i_heure').value,
+    date:document.getElementById('i_date').value, heure:document.getElementById('i_heure').value,
     patientId:document.getElementById('i_patient').value, service:document.getElementById('i_service').value,
     intervenantId:document.getElementById('i_intervenant').value, statut:'planifiée', notes:document.getElementById('i_notes').value,
   };
-  STATE.interventions.push(item); saveState(); closeModal(); PLANNING_DATE=item.date; renderPlanning(document.getElementById('content')); toast('Intervention planifiée');
+  try{
+    await apiPost('/interventions', item);
+    await refresh('interventions');
+    closeModal(); PLANNING_DATE=item.date; renderPlanning(document.getElementById('content')); toast('Intervention planifiée');
+  }catch(e){ toast(e.message); }
 }
 
 /* ---- Équipe ---- */
@@ -647,7 +645,11 @@ function drawTeamTable(){
     </tr>`;
   }).join('');
 }
-function toggleDispo(id){ const t=STATE.team.find(x=>x.id===id); t.dispo=!t.dispo; saveState(); drawTeamTable(); }
+async function toggleDispo(id){
+  const t=STATE.team.find(x=>x.id===id);
+  try{ await apiPut(`/team?id=${id}`, {dispo: !t.dispo}); await refresh('team'); drawTeamTable(); }
+  catch(e){ toast(e.message); }
+}
 function openTeamForm(){
   document.getElementById('modal').innerHTML = `
     <div class="modal-head"><h3>Nouveau professionnel</h3><button class="close-x" onclick="closeModal()">&times;</button></div>
@@ -663,11 +665,15 @@ function openTeamForm(){
   `;
   openModal();
 }
-function saveTeamMember(){
+async function saveTeamMember(){
   const nom=document.getElementById('t_nom').value.trim();
   if(!nom){ toast('Le nom est requis'); return; }
-  STATE.team.push({id:uid(), nom, role:document.getElementById('t_role').value, tel:document.getElementById('t_tel').value, dispo:true, formations:[], prochaine:document.getElementById('t_prochaine').value || new Date().toISOString().slice(0,10)});
-  saveState(); closeModal(); drawTeamTable(); toast('Professionnel ajouté à l\'équipe');
+  const member = {nom, role:document.getElementById('t_role').value, tel:document.getElementById('t_tel').value, dispo:true, formations:[], prochaine:document.getElementById('t_prochaine').value || new Date().toISOString().slice(0,10)};
+  try{
+    await apiPost('/team', member);
+    await refresh('team');
+    closeModal(); drawTeamTable(); toast('Professionnel ajouté à l\'équipe');
+  }catch(e){ toast(e.message); }
 }
 
 /* ---- Santé au travail ---- */
@@ -693,12 +699,16 @@ function drawEntGrid(){
     </div>
   `).join('');
 }
-function addVisite(eid){
+async function addVisite(eid){
   const e = STATE.entreprises.find(x=>x.id===eid);
   const date = prompt('Date de la visite (AAAA-MM-JJ) :', new Date().toISOString().slice(0,10));
   if(!date) return;
-  e.visites.push({date, type:'Visite périodique', statut:'planifiée'});
-  saveState(); drawEntGrid(); toast('Visite planifiée');
+  const visites = [...e.visites, {date, type:'Visite périodique', statut:'planifiée'}];
+  try{
+    await apiPut(`/entreprises?id=${eid}`, {visites});
+    await refresh('entreprises');
+    drawEntGrid(); toast('Visite planifiée');
+  }catch(err){ toast(err.message); }
 }
 function openEntrepriseForm(){
   document.getElementById('modal').innerHTML = `
@@ -715,11 +725,15 @@ function openEntrepriseForm(){
   `;
   openModal();
 }
-function saveEntreprise(){
+async function saveEntreprise(){
   const nom = document.getElementById('e_nom').value.trim();
   if(!nom){ toast('Le nom est requis'); return; }
-  STATE.entreprises.push({id:uid(), nom, secteur:document.getElementById('e_secteur').value, effectif:+document.getElementById('e_effectif').value||0, contact:document.getElementById('e_contact').value, visites:[], documentUnique:{version:'v1.0', date:new Date().toISOString().slice(0,10)}, campagnes:[]});
-  saveState(); closeModal(); drawEntGrid(); toast('Entreprise ajoutée');
+  const entreprise = {nom, secteur:document.getElementById('e_secteur').value, effectif:+document.getElementById('e_effectif').value||0, contact:document.getElementById('e_contact').value, visites:[], documentUnique:{version:'v1.0', date:new Date().toISOString().slice(0,10)}, campagnes:[]};
+  try{
+    await apiPost('/entreprises', entreprise);
+    await refresh('entreprises');
+    closeModal(); drawEntGrid(); toast('Entreprise ajoutée');
+  }catch(e){ toast(e.message); }
 }
 
 /* ---- Facturation ---- */
@@ -758,7 +772,10 @@ function drawFacTable(){
       </td>
     </tr>`).join('');
 }
-function changeStatutFac(id, val){ const f=STATE.factures.find(x=>x.id===id); f.statut=val; saveState(); renderFacturation(document.getElementById('content')); }
+async function changeStatutFac(id, val){
+  try{ await apiPut(`/factures?id=${id}`, {statut:val}); await refresh('factures'); renderFacturation(document.getElementById('content')); }
+  catch(e){ toast(e.message); }
+}
 function openFactureForm(){
   document.getElementById('modal').innerHTML = `
     <div class="modal-head"><h3>Nouvelle facture</h3><button class="close-x" onclick="closeModal()">&times;</button></div>
@@ -775,11 +792,15 @@ function openFactureForm(){
   `;
   openModal();
 }
-function saveFacture(){
+async function saveFacture(){
   const cible = document.getElementById('fa_cible').value.trim();
   if(!cible){ toast('Le nom de la cible est requis'); return; }
-  STATE.factures.push({id:uid(), type:document.getElementById('fa_type').value, cible, service:document.getElementById('fa_service').value, montant:+document.getElementById('fa_montant').value||0, date:document.getElementById('fa_date').value, statut:'en attente'});
-  saveState(); closeModal(); renderFacturation(document.getElementById('content')); toast('Facture créée');
+  const facture = {type:document.getElementById('fa_type').value, cible, service:document.getElementById('fa_service').value, montant:+document.getElementById('fa_montant').value||0, date:document.getElementById('fa_date').value, statut:'en attente'};
+  try{
+    await apiPost('/factures', facture);
+    await refresh('factures');
+    closeModal(); renderFacturation(document.getElementById('content')); toast('Facture créée');
+  }catch(e){ toast(e.message); }
 }
 
 /* ---- Qualité SMQ ---- */
@@ -829,6 +850,14 @@ function tickClock(){
 
 /* ---------------- init ---------------- */
 async function init(){
+  if(API_BASE.includes('REPLACE-WITH-YOUR-VERCEL-URL')){
+    document.getElementById('content').innerHTML = `<div class="card" style="border-left:4px solid var(--red);">
+      <b>Configuration requise</b>
+      <p style="font-size:12.8px; margin-top:6px;">L'URL de l'API backend n'a pas encore été configurée. Ouvrez <code>nepsia_care.html</code>, repérez la constante <code>API_BASE</code> en haut du script, et remplacez-la par l'URL de votre déploiement Vercel, par exemple :</p>
+      <pre style="background:var(--cream-2); padding:10px; border-radius:8px; font-size:12px; overflow-x:auto;">const API_BASE = 'https://nepsia-care-backend.vercel.app/api';</pre>
+    </div>`;
+    return;
+  }
   await loadState();
   renderNav();
   renderView();
