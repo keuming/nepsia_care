@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NEPSIA CARE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600&family=Segoe+UI&display=swap" rel="stylesheet">
 <style>
 :root{
   --green-dark:#2f4a17;
@@ -169,12 +172,64 @@ label{font-size:11.5px; color:var(--grey); font-weight:600; display:block; margi
 
 .login-screen{
   position:fixed; inset:0; z-index:200; display:none; align-items:center; justify-content:center;
-  background:linear-gradient(160deg, var(--green-dark), #233815 60%, var(--gold));
+  background:
+    radial-gradient(circle at 12% 15%, rgba(201,162,39,.28), transparent 42%),
+    radial-gradient(circle at 88% 85%, rgba(107,142,35,.30), transparent 46%),
+    linear-gradient(160deg, #f7f6ee 0%, #eef0e2 55%, #e6ecd4 100%);
+  overflow:hidden;
 }
+.login-decor{ position:absolute; inset:0; pointer-events:none; }
+.login-decor::before, .login-decor::after{ content:''; position:absolute; border-radius:50%; }
+.login-decor::before{ width:460px; height:460px; top:-140px; left:-140px; background:radial-gradient(circle, rgba(107,142,35,.14), transparent 70%); }
+.login-decor::after{ width:380px; height:380px; bottom:-120px; right:-100px; background:radial-gradient(circle, rgba(201,162,39,.18), transparent 70%); }
+
 .login-card{
-  background:#fff; border-radius:18px; padding:38px 34px; width:100%; max-width:380px;
-  box-shadow:0 24px 70px rgba(0,0,0,.35);
+  position:relative; z-index:1;
+  background:#fff; border-radius:26px; padding:46px 40px 32px;
+  width:100%; max-width:400px;
+  box-shadow:0 30px 80px rgba(47,74,23,.18), 0 2px 8px rgba(47,74,23,.06);
+  border:1px solid rgba(201,162,39,.14);
 }
+.login-emblem{
+  width:66px; height:66px; margin:0 auto 18px; border-radius:50%;
+  background:radial-gradient(circle at 32% 28%, #efd99a, var(--gold) 58%, #a9821c);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 10px 24px rgba(201,162,39,.35);
+  font-family:'Cormorant Garamond', Georgia, serif; font-style:italic; font-weight:600;
+  color:#3a2c08; font-size:30px;
+}
+.login-title{
+  font-family:'Cormorant Garamond', Georgia, serif; font-size:32px; font-weight:600;
+  text-align:center; color:var(--green-dark); margin:0 0 2px; letter-spacing:.4px;
+}
+.login-tagline{ text-align:center; font-style:italic; color:var(--grey); font-size:12.5px; margin:0 0 30px; }
+
+.login-field{ margin-bottom:20px; }
+.login-field > label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.7px; color:var(--grey); font-weight:700; margin-bottom:9px; display:block; }
+
+.input-pill{
+  display:flex; align-items:center; gap:11px;
+  border:1.5px solid #e7e5d5; border-radius:15px; padding:13px 17px; background:#fbfaf5;
+  transition:.15s;
+}
+.input-pill:focus-within{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,39,.12); background:#fff; }
+.input-pill .input-icon{ font-size:16px; opacity:.55; }
+.input-pill input{ border:none; background:transparent; flex:1; font-size:15px; padding:0; color:var(--ink); letter-spacing:.4px; }
+.input-pill input:focus{ outline:none; }
+
+.pin-inputs{ display:flex; gap:11px; justify-content:center; }
+.pin-box{
+  width:54px; height:60px; text-align:center; font-size:26px; font-weight:700;
+  border:1.5px solid #e7e5d5; border-radius:15px; background:#fbfaf5; color:var(--green-dark);
+  transition:.15s; font-family:'Cormorant Garamond', Georgia, serif;
+}
+.pin-box:focus{ outline:none; border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,162,39,.15); background:#fff; }
+
+.login-error{ color:var(--red); font-size:12px; min-height:16px; margin:16px 0 4px; text-align:center; }
+.login-submit{ width:100%; justify-content:center; padding:14px; font-size:13.5px; border-radius:15px; letter-spacing:.4px; margin-top:6px; }
+
+.login-copyright{ text-align:center; font-size:10.5px; color:#bcb99f; margin-top:28px; letter-spacing:.2px; }
+.app-copyright{ text-align:center; font-size:10px; color:#8fa06b; margin-top:12px; letter-spacing:.2px; }
 </style>
 </head>
 <body>
@@ -194,6 +249,7 @@ label{font-size:11.5px; color:var(--grey); font-weight:600; display:block; margi
     <div id="userBadge" style="color:#fff; font-size:13px; font-weight:700;"></div>
     <div id="userRoleBadge" style="color:#b9c6a0; font-size:11px; margin-top:2px;"></div>
     <button class="btn ghost sm" style="margin-top:10px; width:100%; justify-content:center; border-color:rgba(255,255,255,.25); color:#eef0e2;" onclick="logout()">Déconnexion</button>
+    <div style="text-align:center; font-size:9.5px; color:#93a077; margin-top:14px; letter-spacing:.2px;">© 2026 NEPSIA Santé &amp; Prévention</div>
   </div>
 </div>
 
@@ -215,14 +271,33 @@ label{font-size:11.5px; color:var(--grey); font-weight:600; display:block; margi
 <div id="toast"></div>
 
 <div id="loginScreen" class="login-screen">
+  <div class="login-decor"></div>
   <div class="login-card">
-    <div class="brand-badge" style="width:52px;height:52px;font-size:22px;margin:0 auto 16px;">N</div>
-    <h2 style="text-align:center; color:var(--green-dark); margin:0 0 4px;">NEPSIA CARE</h2>
-    <p style="text-align:center; color:var(--grey); font-size:12.5px; margin:0 0 22px;">Connectez-vous pour accéder à la plateforme</p>
-    <div class="field"><label>Numéro de téléphone</label><input type="tel" id="login_tel" placeholder="0707039135" autocomplete="username" inputmode="numeric"></div>
-    <div class="field"><label>Code PIN (4 chiffres)</label><input type="password" id="login_pin" autocomplete="current-password" inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="••••"></div>
-    <div id="loginError" style="color:var(--red); font-size:12px; min-height:16px; margin-bottom:8px;"></div>
-    <button class="btn gold" style="width:100%; justify-content:center;" onclick="handleLogin()">Se connecter</button>
+    <div class="login-emblem">N</div>
+    <h2 class="login-title">NEPSIA CARE</h2>
+    <p class="login-tagline">« Le patient, notre raison d'exister »</p>
+
+    <div class="login-field">
+      <label>Numéro de téléphone</label>
+      <div class="input-pill">
+        <span class="input-icon">&#128222;</span>
+        <input type="tel" id="login_tel" placeholder="07 07 03 91 35" autocomplete="username" inputmode="numeric">
+      </div>
+    </div>
+
+    <div class="login-field">
+      <label>Code PIN</label>
+      <div class="pin-inputs" id="pinInputs">
+        <input class="pin-box" type="password" inputmode="numeric" maxlength="1" data-i="0">
+        <input class="pin-box" type="password" inputmode="numeric" maxlength="1" data-i="1">
+        <input class="pin-box" type="password" inputmode="numeric" maxlength="1" data-i="2">
+        <input class="pin-box" type="password" inputmode="numeric" maxlength="1" data-i="3">
+      </div>
+    </div>
+
+    <div id="loginError" class="login-error"></div>
+    <button class="btn gold login-submit" onclick="handleLogin()">Se connecter</button>
+    <div class="login-copyright">© 2026 NEPSIA Santé &amp; Prévention — Tous droits réservés</div>
   </div>
 </div>
 
@@ -296,11 +371,33 @@ const apiPut = (path, body) => api(path, {method:'PUT', body: JSON.stringify(bod
 const apiDelete = (path) => api(path, {method:'DELETE'});
 
 /* ---------------- authentification ---------------- */
+function clearPinBoxes(){
+  document.querySelectorAll('.pin-box').forEach(b=>b.value='');
+}
+function getPinValue(){
+  return Array.from(document.querySelectorAll('.pin-box')).map(b=>b.value).join('');
+}
+function setupPinBoxes(){
+  const boxes = Array.from(document.querySelectorAll('.pin-box'));
+  boxes.forEach((box, i)=>{
+    box.addEventListener('input', ()=>{
+      box.value = box.value.replace(/\D/g,'').slice(0,1);
+      if(box.value && boxes[i+1]) boxes[i+1].focus();
+      if(getPinValue().length === 4) handleLogin();
+    });
+    box.addEventListener('keydown', (e)=>{
+      if(e.key==='Backspace' && !box.value && boxes[i-1]) boxes[i-1].focus();
+      if(e.key==='Enter') handleLogin();
+    });
+  });
+}
+setupPinBoxes();
+
 function showLoginScreen(){
   document.getElementById('sidebar').style.display = 'none';
   document.getElementById('main').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('login_pin').value = '';
+  clearPinBoxes();
   setTimeout(()=>document.getElementById('login_tel').focus(), 50);
 }
 function hideLoginScreen(){
@@ -309,8 +406,8 @@ function hideLoginScreen(){
   document.getElementById('main').style.display = 'flex';
 }
 async function handleLogin(){
-  const telephone = document.getElementById('login_tel').value.trim();
-  const pin = document.getElementById('login_pin').value;
+  const telephone = document.getElementById('login_tel').value.trim().replace(/\s+/g,'');
+  const pin = getPinValue();
   const errEl = document.getElementById('loginError');
   errEl.textContent = '';
   if(!telephone || !pin){ errEl.textContent = 'Merci de renseigner votre numéro de téléphone et votre code PIN.'; return; }
@@ -327,6 +424,8 @@ async function handleLogin(){
     await bootApp();
   }catch(e){
     errEl.textContent = e.message;
+    clearPinBoxes();
+    document.querySelector('.pin-box').focus();
   }
 }
 function logout(){
@@ -338,7 +437,6 @@ function updateUserBadge(){
   document.getElementById('userBadge').textContent = CURRENT_USER?.nom || '';
   document.getElementById('userRoleBadge').textContent = CURRENT_USER?.role || '';
 }
-document.getElementById('login_pin').addEventListener('keydown', e=>{ if(e.key==='Enter') handleLogin(); });
 
 /* ---------------- chargement des données depuis l'API ---------------- */
 async function loadState(){
