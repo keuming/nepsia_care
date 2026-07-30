@@ -166,6 +166,15 @@ label{font-size:11.5px; color:var(--grey); font-weight:600; display:block; margi
 
 .two-col{display:grid; grid-template-columns:1.3fr 1fr; gap:18px;}
 @media(max-width:1000px){.two-col{grid-template-columns:1fr;}}
+
+.login-screen{
+  position:fixed; inset:0; z-index:200; display:none; align-items:center; justify-content:center;
+  background:linear-gradient(160deg, var(--green-dark), #233815 60%, var(--gold));
+}
+.login-card{
+  background:#fff; border-radius:18px; padding:38px 34px; width:100%; max-width:380px;
+  box-shadow:0 24px 70px rgba(0,0,0,.35);
+}
 </style>
 </head>
 <body>
@@ -180,16 +189,11 @@ label{font-size:11.5px; color:var(--grey); font-weight:600; display:block; margi
   </div>
   <div class="tagline">« Le patient, notre raison d'exister »</div>
   <nav id="nav"></nav>
-  <div class="sidebar-foot">
+  <div class="sidebar-foot" id="sidebarFoot">
     <div class="role-label">Connecté en tant que</div>
-    <select class="role-select" id="roleSelect">
-      <option>Direction</option>
-      <option>Coordination HAD</option>
-      <option>Infirmier(ère)</option>
-      <option>RH / Formation</option>
-      <option>Facturation</option>
-      <option>Responsable Santé au Travail</option>
-    </select>
+    <div id="userBadge" style="color:#fff; font-size:13px; font-weight:700;"></div>
+    <div id="userRoleBadge" style="color:#b9c6a0; font-size:11px; margin-top:2px;"></div>
+    <button class="btn ghost sm" style="margin-top:10px; width:100%; justify-content:center; border-color:rgba(255,255,255,.25); color:#eef0e2;" onclick="logout()">Déconnexion</button>
   </div>
 </div>
 
@@ -210,10 +214,22 @@ label{font-size:11.5px; color:var(--grey); font-weight:600; display:block; margi
 <div class="overlay" id="overlay"><div class="modal" id="modal"></div></div>
 <div id="toast"></div>
 
+<div id="loginScreen" class="login-screen">
+  <div class="login-card">
+    <div class="brand-badge" style="width:52px;height:52px;font-size:22px;margin:0 auto 16px;">N</div>
+    <h2 style="text-align:center; color:var(--green-dark); margin:0 0 4px;">NEPSIA CARE</h2>
+    <p style="text-align:center; color:var(--grey); font-size:12.5px; margin:0 0 22px;">Connectez-vous pour accéder à la plateforme</p>
+    <div class="field"><label>Email</label><input type="text" id="login_email" placeholder="prenom.nom@nepsia.org" autocomplete="username"></div>
+    <div class="field"><label>Mot de passe</label><input type="password" id="login_password" autocomplete="current-password"></div>
+    <div id="loginError" style="color:var(--red); font-size:12px; min-height:16px; margin-bottom:8px;"></div>
+    <button class="btn gold" style="width:100%; justify-content:center;" onclick="handleLogin()">Se connecter</button>
+  </div>
+</div>
+
 <script>
 /* ============================================================
    NEPSIA CARE — plateforme de gestion HAD & Santé au Travail
-   Prototype fonctionnel — données persistées via window.storage
+   Prototype fonctionnel — données persistées via l'API (Node.js + PostgreSQL), avec authentification par compte
    ============================================================ */
 
 const SERVICES = [
@@ -244,10 +260,13 @@ const NAVS = [
   {id:'travail', icon:'&#127970;', label:'Santé au Travail'},
   {id:'facturation', icon:'&#128179;', label:'Facturation'},
   {id:'qualite', icon:'&#9989;', label:'Qualité — SMQ'},
+  {id:'users', icon:'&#128100;', label:'Comptes utilisateurs', rolesOnly:['Direction']},
 ];
 
 let STATE = {patients:[], team:[], interventions:[], entreprises:[], factures:[]};
 let CURRENT_VIEW = 'dashboard';
+let AUTH_TOKEN = null;
+let CURRENT_USER = null;
 
 /* ---------------- API backend (Node.js/Express + PostgreSQL sur Vercel) ---------------- */
 // Remplacez par l'URL de votre déploiement Vercel une fois le backend en ligne, ex :
@@ -255,10 +274,14 @@ let CURRENT_VIEW = 'dashboard';
 const API_BASE = 'https://nepsia-care-backend-3muc.vercel.app/api';
 
 async function api(path, opts={}){
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: {'Content-Type':'application/json'},
-    ...opts,
-  });
+  const headers = {'Content-Type':'application/json'};
+  if(AUTH_TOKEN) headers['Authorization'] = `Bearer ${AUTH_TOKEN}`;
+  const res = await fetch(`${API_BASE}${path}`, { headers, ...opts });
+  if(res.status === 401){
+    AUTH_TOKEN = null; CURRENT_USER = null;
+    showLoginScreen();
+    throw new Error('Session expirée — veuillez vous reconnecter.');
+  }
   if(!res.ok){
     let msg = `Erreur API (${res.status})`;
     try{ const j = await res.json(); if(j.error) msg = j.error; }catch(e){}
@@ -271,6 +294,50 @@ const apiGet = (path) => api(path);
 const apiPost = (path, body) => api(path, {method:'POST', body: JSON.stringify(body)});
 const apiPut = (path, body) => api(path, {method:'PUT', body: JSON.stringify(body)});
 const apiDelete = (path) => api(path, {method:'DELETE'});
+
+/* ---------------- authentification ---------------- */
+function showLoginScreen(){
+  document.getElementById('sidebar').style.display = 'none';
+  document.getElementById('main').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('login_password').value = '';
+  setTimeout(()=>document.getElementById('login_email').focus(), 50);
+}
+function hideLoginScreen(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('sidebar').style.display = 'flex';
+  document.getElementById('main').style.display = 'flex';
+}
+async function handleLogin(){
+  const email = document.getElementById('login_email').value.trim();
+  const password = document.getElementById('login_password').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = '';
+  if(!email || !password){ errEl.textContent = 'Merci de renseigner votre email et votre mot de passe.'; return; }
+  try{
+    const res = await fetch(`${API_BASE}/auth/login`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email, password}),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.error || 'Connexion impossible');
+    AUTH_TOKEN = data.token; CURRENT_USER = data.user;
+    hideLoginScreen();
+    await bootApp();
+  }catch(e){
+    errEl.textContent = e.message;
+  }
+}
+function logout(){
+  AUTH_TOKEN = null; CURRENT_USER = null;
+  STATE = {patients:[], team:[], interventions:[], entreprises:[], factures:[]};
+  showLoginScreen();
+}
+function updateUserBadge(){
+  document.getElementById('userBadge').textContent = CURRENT_USER?.nom || '';
+  document.getElementById('userRoleBadge').textContent = CURRENT_USER?.role || '';
+}
+document.getElementById('login_password').addEventListener('keydown', e=>{ if(e.key==='Enter') handleLogin(); });
 
 /* ---------------- chargement des données depuis l'API ---------------- */
 async function loadState(){
@@ -303,7 +370,8 @@ function toast(msg){
 /* ---------------- render: nav ---------------- */
 function renderNav(){
   const nav = document.getElementById('nav');
-  nav.innerHTML = NAVS.map(n=>`
+  const items = NAVS.filter(n => !n.rolesOnly || (CURRENT_USER && n.rolesOnly.includes(CURRENT_USER.role)));
+  nav.innerHTML = items.map(n=>`
     <div class="nav-item ${n.id===CURRENT_VIEW?'active':''}" onclick="goTo('${n.id}')">
       <span class="nav-icon">${n.icon}</span><span>${n.label}</span>
     </div>`).join('');
@@ -328,6 +396,7 @@ function renderView(){
   if(CURRENT_VIEW==='travail') return renderTravail(c);
   if(CURRENT_VIEW==='facturation') return renderFacturation(c);
   if(CURRENT_VIEW==='qualite') return renderQualite(c);
+  if(CURRENT_VIEW==='users') return renderUsers(c);
 }
 
 /* ---- Dashboard ---- */
@@ -505,7 +574,7 @@ async function toggleAdmission(pid, key){
   const admission = {...p.admission};
   const cur = admission[key];
   admission[key] = !cur.done
-    ? {done:true, date:new Date().toISOString().slice(0,10), par: document.getElementById('roleSelect').value}
+    ? {done:true, date:new Date().toISOString().slice(0,10), par: CURRENT_USER?.nom || 'Coordination'}
     : {done:false};
   try{
     await apiPut(`/patients?id=${pid}`, {admission});
@@ -837,6 +906,69 @@ function renderQualite(c){
   `;
 }
 
+/* ---- Comptes utilisateurs (Direction uniquement) ---- */
+const ROLES_COMPTE = ['Direction','Coordination HAD','Infirmier(ère)','RH / Formation','Facturation','Responsable Santé au Travail'];
+let USERS_LIST = [];
+
+async function renderUsers(c){
+  setHeader('Comptes utilisateurs', "Gestion des accès à la plateforme — réservé au profil Direction");
+  c.innerHTML = `
+    <div class="toolbar"><button class="btn gold" onclick="openUserForm()">+ Créer un compte</button></div>
+    <div class="card"><table><thead><tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Créé le</th><th></th></tr></thead><tbody id="usersBody"></tbody></table></div>
+  `;
+  try{
+    USERS_LIST = await apiGet('/users');
+    drawUsersTable();
+  }catch(e){
+    document.getElementById('usersBody').innerHTML = `<tr><td colspan="5">${e.message}</td></tr>`;
+  }
+}
+function drawUsersTable(){
+  const tbody = document.getElementById('usersBody');
+  if(!USERS_LIST.length){ tbody.innerHTML = `<tr><td colspan="5"><div class="empty">Aucun compte.</div></td></tr>`; return; }
+  tbody.innerHTML = USERS_LIST.map(u=>`
+    <tr>
+      <td><b>${u.nom}</b>${u.id===CURRENT_USER.id?' <span class="tag">vous</span>':''}</td>
+      <td>${u.email}</td>
+      <td><span class="badge blue">${u.role}</span></td>
+      <td style="font-size:11.5px; color:var(--grey);">${new Date(u.createdAt).toLocaleDateString('fr-FR')}</td>
+      <td>${u.id===CURRENT_USER.id ? '' : `<button class="btn sm danger" onclick="deleteUser('${u.id}')">Supprimer</button>`}</td>
+    </tr>`).join('');
+}
+function openUserForm(){
+  document.getElementById('modal').innerHTML = `
+    <div class="modal-head"><h3>Créer un compte</h3><button class="close-x" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body">
+      <div class="field"><label>Nom complet</label><input type="text" id="u_nom"></div>
+      <div class="field"><label>Email</label><input type="text" id="u_email" placeholder="prenom.nom@nepsia.org"></div>
+      <div class="field"><label>Rôle</label><select id="u_role">${ROLES_COMPTE.map(r=>`<option>${r}</option>`).join('')}</select></div>
+      <div class="field"><label>Mot de passe provisoire</label><input type="text" id="u_password" placeholder="8 caractères minimum"></div>
+    </div>
+    <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn gold" onclick="saveUser()">Créer le compte</button></div>
+  `;
+  openModal();
+}
+async function saveUser(){
+  const nom = document.getElementById('u_nom').value.trim();
+  const email = document.getElementById('u_email').value.trim();
+  const password = document.getElementById('u_password').value;
+  const role = document.getElementById('u_role').value;
+  if(!nom || !email || !password){ toast('Tous les champs sont requis'); return; }
+  try{
+    await apiPost('/users', {nom, email, password, role});
+    USERS_LIST = await apiGet('/users');
+    closeModal(); drawUsersTable(); toast('Compte créé — communiquez le mot de passe provisoire à la personne concernée');
+  }catch(e){ toast(e.message); }
+}
+async function deleteUser(id){
+  if(!confirm('Supprimer ce compte ? Cette action est définitive.')) return;
+  try{
+    await apiDelete(`/users?id=${id}`);
+    USERS_LIST = await apiGet('/users');
+    drawUsersTable(); toast('Compte supprimé');
+  }catch(e){ toast(e.message); }
+}
+
 /* ---------------- modal helpers ---------------- */
 function openModal(){ document.getElementById('overlay').classList.add('active'); }
 function closeModal(){ document.getElementById('overlay').classList.remove('active'); }
@@ -851,13 +983,20 @@ function tickClock(){
 /* ---------------- init ---------------- */
 async function init(){
   if(API_BASE.includes('REPLACE-WITH-YOUR-VERCEL-URL')){
-    document.getElementById('content').innerHTML = `<div class="card" style="border-left:4px solid var(--red);">
+    document.getElementById('sidebar').style.display = 'none';
+    document.getElementById('main').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'none';
+    document.body.insertAdjacentHTML('beforeend', `<div style="max-width:640px; margin:60px auto; padding:0 20px;"><div class="card" style="border-left:4px solid var(--red);">
       <b>Configuration requise</b>
       <p style="font-size:12.8px; margin-top:6px;">L'URL de l'API backend n'a pas encore été configurée. Ouvrez <code>nepsia_care.html</code>, repérez la constante <code>API_BASE</code> en haut du script, et remplacez-la par l'URL de votre déploiement Vercel, par exemple :</p>
       <pre style="background:var(--cream-2); padding:10px; border-radius:8px; font-size:12px; overflow-x:auto;">const API_BASE = 'https://nepsia-care-backend.vercel.app/api';</pre>
-    </div>`;
+    </div></div>`);
     return;
   }
+  showLoginScreen();
+}
+async function bootApp(){
+  updateUserBadge();
   await loadState();
   renderNav();
   renderView();
