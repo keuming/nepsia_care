@@ -252,7 +252,7 @@ let CURRENT_VIEW = 'dashboard';
 /* ---------------- API backend (Node.js/Express + PostgreSQL sur Vercel) ---------------- */
 // Remplacez par l'URL de votre déploiement Vercel une fois le backend en ligne, ex :
 // const API_BASE = 'https://nepsia-care-backend.vercel.app/api';
-const API_BASE = 'https://REPLACE-WITH-YOUR-VERCEL-URL.vercel.app/api';
+const API_BASE = 'https://nepsia-care-backend-3muc.vercel.app/api';
 
 async function api(path, opts={}){
   const res = await fetch(`${API_BASE}${path}`, {
