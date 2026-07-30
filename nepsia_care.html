@@ -219,8 +219,8 @@ label{font-size:11.5px; color:var(--grey); font-weight:600; display:block; margi
     <div class="brand-badge" style="width:52px;height:52px;font-size:22px;margin:0 auto 16px;">N</div>
     <h2 style="text-align:center; color:var(--green-dark); margin:0 0 4px;">NEPSIA CARE</h2>
     <p style="text-align:center; color:var(--grey); font-size:12.5px; margin:0 0 22px;">Connectez-vous pour accéder à la plateforme</p>
-    <div class="field"><label>Email</label><input type="text" id="login_email" placeholder="prenom.nom@nepsia.org" autocomplete="username"></div>
-    <div class="field"><label>Mot de passe</label><input type="password" id="login_password" autocomplete="current-password"></div>
+    <div class="field"><label>Numéro de téléphone</label><input type="tel" id="login_tel" placeholder="0707039135" autocomplete="username" inputmode="numeric"></div>
+    <div class="field"><label>Code PIN (4 chiffres)</label><input type="password" id="login_pin" autocomplete="current-password" inputmode="numeric" maxlength="4" pattern="\d{4}" placeholder="••••"></div>
     <div id="loginError" style="color:var(--red); font-size:12px; min-height:16px; margin-bottom:8px;"></div>
     <button class="btn gold" style="width:100%; justify-content:center;" onclick="handleLogin()">Se connecter</button>
   </div>
@@ -300,8 +300,8 @@ function showLoginScreen(){
   document.getElementById('sidebar').style.display = 'none';
   document.getElementById('main').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
-  document.getElementById('login_password').value = '';
-  setTimeout(()=>document.getElementById('login_email').focus(), 50);
+  document.getElementById('login_pin').value = '';
+  setTimeout(()=>document.getElementById('login_tel').focus(), 50);
 }
 function hideLoginScreen(){
   document.getElementById('loginScreen').style.display = 'none';
@@ -309,15 +309,16 @@ function hideLoginScreen(){
   document.getElementById('main').style.display = 'flex';
 }
 async function handleLogin(){
-  const email = document.getElementById('login_email').value.trim();
-  const password = document.getElementById('login_password').value;
+  const telephone = document.getElementById('login_tel').value.trim();
+  const pin = document.getElementById('login_pin').value;
   const errEl = document.getElementById('loginError');
   errEl.textContent = '';
-  if(!email || !password){ errEl.textContent = 'Merci de renseigner votre email et votre mot de passe.'; return; }
+  if(!telephone || !pin){ errEl.textContent = 'Merci de renseigner votre numéro de téléphone et votre code PIN.'; return; }
+  if(!/^\d{4}$/.test(pin)){ errEl.textContent = 'Le code PIN doit contenir exactement 4 chiffres.'; return; }
   try{
     const res = await fetch(`${API_BASE}/auth/login`, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({email, password}),
+      body: JSON.stringify({telephone, pin}),
     });
     const data = await res.json();
     if(!res.ok) throw new Error(data.error || 'Connexion impossible');
@@ -337,7 +338,7 @@ function updateUserBadge(){
   document.getElementById('userBadge').textContent = CURRENT_USER?.nom || '';
   document.getElementById('userRoleBadge').textContent = CURRENT_USER?.role || '';
 }
-document.getElementById('login_password').addEventListener('keydown', e=>{ if(e.key==='Enter') handleLogin(); });
+document.getElementById('login_pin').addEventListener('keydown', e=>{ if(e.key==='Enter') handleLogin(); });
 
 /* ---------------- chargement des données depuis l'API ---------------- */
 async function loadState(){
@@ -914,7 +915,7 @@ async function renderUsers(c){
   setHeader('Comptes utilisateurs', "Gestion des accès à la plateforme — réservé au profil Direction");
   c.innerHTML = `
     <div class="toolbar"><button class="btn gold" onclick="openUserForm()">+ Créer un compte</button></div>
-    <div class="card"><table><thead><tr><th>Nom</th><th>Email</th><th>Rôle</th><th>Créé le</th><th></th></tr></thead><tbody id="usersBody"></tbody></table></div>
+    <div class="card"><table><thead><tr><th>Nom</th><th>Téléphone</th><th>Rôle</th><th>Créé le</th><th></th></tr></thead><tbody id="usersBody"></tbody></table></div>
   `;
   try{
     USERS_LIST = await apiGet('/users');
@@ -929,7 +930,7 @@ function drawUsersTable(){
   tbody.innerHTML = USERS_LIST.map(u=>`
     <tr>
       <td><b>${u.nom}</b>${u.id===CURRENT_USER.id?' <span class="tag">vous</span>':''}</td>
-      <td>${u.email}</td>
+      <td>${u.telephone}</td>
       <td><span class="badge blue">${u.role}</span></td>
       <td style="font-size:11.5px; color:var(--grey);">${new Date(u.createdAt).toLocaleDateString('fr-FR')}</td>
       <td>${u.id===CURRENT_USER.id ? '' : `<button class="btn sm danger" onclick="deleteUser('${u.id}')">Supprimer</button>`}</td>
@@ -940,9 +941,9 @@ function openUserForm(){
     <div class="modal-head"><h3>Créer un compte</h3><button class="close-x" onclick="closeModal()">&times;</button></div>
     <div class="modal-body">
       <div class="field"><label>Nom complet</label><input type="text" id="u_nom"></div>
-      <div class="field"><label>Email</label><input type="text" id="u_email" placeholder="prenom.nom@nepsia.org"></div>
+      <div class="field"><label>Numéro de téléphone</label><input type="tel" id="u_tel" placeholder="0707039135" inputmode="numeric"></div>
       <div class="field"><label>Rôle</label><select id="u_role">${ROLES_COMPTE.map(r=>`<option>${r}</option>`).join('')}</select></div>
-      <div class="field"><label>Mot de passe provisoire</label><input type="text" id="u_password" placeholder="8 caractères minimum"></div>
+      <div class="field"><label>Code PIN (4 chiffres)</label><input type="text" id="u_pin" maxlength="4" inputmode="numeric" pattern="\\d{4}" placeholder="Ex. 4821"></div>
     </div>
     <div class="modal-foot"><button class="btn ghost" onclick="closeModal()">Annuler</button><button class="btn gold" onclick="saveUser()">Créer le compte</button></div>
   `;
@@ -950,14 +951,15 @@ function openUserForm(){
 }
 async function saveUser(){
   const nom = document.getElementById('u_nom').value.trim();
-  const email = document.getElementById('u_email').value.trim();
-  const password = document.getElementById('u_password').value;
+  const telephone = document.getElementById('u_tel').value.trim();
+  const pin = document.getElementById('u_pin').value.trim();
   const role = document.getElementById('u_role').value;
-  if(!nom || !email || !password){ toast('Tous les champs sont requis'); return; }
+  if(!nom || !telephone || !pin){ toast('Tous les champs sont requis'); return; }
+  if(!/^\d{4}$/.test(pin)){ toast('Le code PIN doit contenir exactement 4 chiffres'); return; }
   try{
-    await apiPost('/users', {nom, email, password, role});
+    await apiPost('/users', {nom, telephone, pin, role});
     USERS_LIST = await apiGet('/users');
-    closeModal(); drawUsersTable(); toast('Compte créé — communiquez le mot de passe provisoire à la personne concernée');
+    closeModal(); drawUsersTable(); toast('Compte créé — communiquez le code PIN à la personne concernée');
   }catch(e){ toast(e.message); }
 }
 async function deleteUser(id){
